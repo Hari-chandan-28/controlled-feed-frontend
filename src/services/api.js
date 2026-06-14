@@ -1,7 +1,8 @@
 import axios from 'axios';
 
-const API = axios.create({baseURL: 'http://localhost:8080'});
-
+const API = axios.create({
+    baseURL: import.meta.env.VITE_API_URL || ''
+});
 
 API.interceptors.request.use((config) => {
     const token = localStorage.getItem('token');
@@ -31,7 +32,7 @@ export const getProfile = () => API.get('/api/profile/me');
 export const uploadPicture = (formData) => API.post('/api/profile/upload-picture', formData);
 
 // Feed
-export const getFeed = (page = 0, size = 10) => API.get(`/api/feed?page=${page}&size=${size}`);
+export const getFeed = (page = 0, size = 10) => API.get(`/api/feed?page=${page}&pageSize=${size}`);
 
 // YouTube
 export const fetchF1Videos = () => API.get('/api/youtube/f1');
@@ -40,6 +41,7 @@ export const fetchICCVideos = () => API.get('/api/youtube/icc');
 // RSS
 export const getF1Articles = () => API.get('/api/rss/f1');
 export const getCricketArticles = () => API.get('/api/rss/cricket');
+export const getArticlesFeed = () => API.get('/api/rss/feed');
 
 // F1 Dashboard
 export const getDriverStandings = () => API.get('/api/f1/standings');
@@ -57,5 +59,5 @@ export const getScorecard = (matchId) => API.get(`/api/cricket/scorecard/${match
 
 // Chat
 export const askQuestion = (question) => API.post('/api/chat/ask', { question });
-
+export const updateProfile = (data) => API.put('/api/profile/update', data);
 export default API;

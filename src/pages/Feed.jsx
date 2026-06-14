@@ -1,40 +1,55 @@
-import  { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { getFeed, getF1Articles, getCricketArticles } from '../services/api';
-
-// Single video card component
-const VideoCard = ({ video }) => (
-  <div className="card-hover bg-card border border-border rounded-xl overflow-hidden">
-    {/* Thumbnail */}
-    {video.thumbnailUrl && (
+import {  getArticlesFeed } from '../services/api';
+// ─── Video Card ───────────────────────────────────────────
+const VideoCard = ({ video }) => {
+  const [playing, setPlaying] = useState(false);
+  return (
+    <div className="card-hover bg-card border border-border rounded-xl overflow-hidden">
       <div className="relative">
-        <img
-          src={video.thumbnailUrl}
-          alt={video.title}
-          className="w-full h-44 object-cover"
-        />
-        {/* Category badge */}
-        <span className={`absolute top-2 right-2 px-2 py-1 rounded text-xs font-semibold ${
-          video.category === 'F1'
-            ? 'bg-primary text-white'
-            : 'bg-blue-600 text-white'
-        }`}>
-          {video.category === 'F1' ? '🏎️ F1' : '🏏 Cricket'}
-        </span>
+        {playing ? (
+          <iframe
+            src={`https://www.youtube.com/embed/${video.videoId}?autoplay=1`}
+            className="w-full h-44"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope"
+            allowFullScreen
+            title={video.title}
+          />
+        ) : (
+          <div className="relative cursor-pointer group" onClick={() => setPlaying(true)}>
+            <img src={video.thumbnailUrl} alt={video.title} className="w-full h-44 object-cover" />
+            <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/50 transition-all">
+              <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center">
+                <span className="text-white text-lg ml-1">▶</span>
+              </div>
+            </div>
+            <span className={`absolute top-2 right-2 px-2 py-1 rounded text-xs font-semibold ${
+              video.category === 'F1' ? 'bg-primary text-white' : 'bg-blue-600 text-white'
+            }`}>
+              {video.category === 'F1' ? '🏎️ F1' : '🏏 Cricket'}
+            </span>
+          </div>
+        )}
       </div>
-    )}
-    <div className="p-4">
-      <h3 className="text-white font-medium text-sm leading-snug mb-2 line-clamp-2">
-        {video.title}
-      </h3>
-      <div className="flex items-center justify-between">
-        <span className="text-muted text-xs">{video.channelTitle}</span>
-        <span className="text-muted text-xs">{video.publishedAt?.slice(0, 10)}</span>
+      <div className="p-4">
+        <h3 className="text-white font-medium text-sm leading-snug mb-2 line-clamp-2">{video.title}</h3>
+        <div className="flex items-center justify-between">
+          <span className="text-muted text-xs">{video.channelTitle}</span>
+          <a
+            href={`https://youtube.com/watch?v=${video.videoId}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary text-xs hover:underline"
+          >
+            Watch on YT →
+          </a>
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
-// Single article card component
+// ─── Article Card ─────────────────────────────────────────
 const ArticleCard = ({ article }) => (
   <a
     href={article.link}
@@ -42,83 +57,115 @@ const ArticleCard = ({ article }) => (
     rel="noopener noreferrer"
     className="card-hover block bg-card border border-border rounded-xl p-4"
   >
-    
     <div className="flex items-start gap-3">
       {article.imageUrl && (
-        <img
-          src={article.imageUrl}
-          alt=""
-          className="w-16 h-16 object-cover rounded-lg flex-shrink-0"
-        />
+        <img src={article.imageUrl} alt="" className="w-16 h-16 object-cover rounded-lg flex-shrink-0" />
       )}
-
       <div className="flex-1 min-w-0">
         <span className={`text-xs px-2 py-0.5 rounded font-medium ${
-          article.category === 'F1'
-            ? 'bg-primary/20 text-primary'
-            : 'bg-blue-500/20 text-blue-400'
+          article.category === 'F1' ? 'bg-primary/20 text-primary' : 'bg-blue-500/20 text-blue-400'
         }`}>
           {article.source}
         </span>
-        <h3 className="text-white text-sm font-medium leading-snug line-clamp-2 mt-1">
-          {article.title}
-        </h3>
+        <h3 className="text-white text-sm font-medium leading-snug line-clamp-2 mt-1">{article.title}</h3>
         <p className="text-muted text-xs mt-1">{article.publishedAt?.slice(0, 16)}</p>
       </div>
     </div>
   </a>
 );
 
+// ─── Main Feed Component ──────────────────────────────────
+const ARTICLES_PER_PAGE = 12;
+
 const Feed = () => {
+  // Video states
   const [videos, setVideos] = useState([]);
-  const [articles, setArticles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
-  const [hasMore, setHasMore] = useState(true);
+  const [hasMoreVideos, setHasMoreVideos] = useState(true);
   const [tab, setTab] = useState('all');
 
-  // Load videos from feed API
+  // Article states
+  const [articles, setArticles] = useState([]);
+  const [allArticles, setAllArticles] = useState([]);
+  const [articlePage, setArticlePage] = useState(0);
+  const [hasMoreArticles, setHasMoreArticles] = useState(true);
+  const [loadingMoreArticles, setLoadingMoreArticles] = useState(false);
+  const articleObserverRef = useRef(null);
+
+  // ─── Load Videos ───────────────────────────────────────
   const loadFeed = useCallback(async (pageNum = 0) => {
     try {
       const res = await getFeed(pageNum, 12);
-      if (pageNum === 0) setVideos(res.data);
-      else setVideos((prev) => [...prev, ...res.data]);
-      if (res.data.length < 12) setHasMore(false);
+      setVideos(res.data);
+      setHasMoreVideos(res.data.length === 12);
     } catch (err) {
-      console.error(err);
+      console.error('Feed error:', err);
     }
   }, []);
 
-  // Load articles from RSS
-  const loadArticles = useCallback(async () => {
-    try {
-      const [f1Res, cricketRes] = await Promise.all([
-        getF1Articles(),
-        getCricketArticles()
-      ]);
-      setArticles([...f1Res.data, ...cricketRes.data].slice(0, 20));
-    } catch (err) {
-      console.error(err);
-    }
-  }, []);
+  // ─── Load Articles ─────────────────────────────────────
+  const loadArticles = useCallback(async (pageNum = 0, append = false, source = []) => {
+  if (pageNum === 0 && !append) setLoading(true);
+  else setLoadingMoreArticles(true);
 
-  // Load everything on mount
+  try {
+    let all = source;
+
+    if (pageNum === 0 && source.length === 0) {
+      // Single call → backend filters by user genres automatically
+      const res = await getArticlesFeed();
+      all = res.data;
+      all.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
+      setAllArticles(all);
+    }
+
+    const start = pageNum * ARTICLES_PER_PAGE;
+    const end = start + ARTICLES_PER_PAGE;
+    const pageArticles = all.slice(start, end);
+
+    if (append) {
+      setArticles(prev => [...prev, ...pageArticles]);
+    } else {
+      setArticles(pageArticles);
+    }
+
+    setHasMoreArticles(end < all.length);
+  } catch (err) {
+    console.error(err);
+  } finally {
+    setLoading(false);
+    setLoadingMoreArticles(false);
+  }
+}, []); 
+
+  // ─── Initial Load ──────────────────────────────────────
   useEffect(() => {
     const init = async () => {
       setLoading(true);
-      await Promise.all([loadFeed(0), loadArticles()]);
+      await Promise.all([loadFeed(0), loadArticles(0, false, [])]);
       setLoading(false);
     };
     init();
   }, [loadFeed, loadArticles]);
 
-  const loadMore = () => {
-    const next = page + 1;
-    setPage(next);
-    loadFeed(next);
-  };
+  // ─── Infinite Scroll Observer ──────────────────────────
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMoreArticles && !loadingMoreArticles) {
+          const next = articlePage + 1;
+          setArticlePage(next);
+          loadArticles(next, true, allArticles);
+        }
+      },
+      { threshold: 0.1 }
+    );
+    if (articleObserverRef.current) observer.observe(articleObserverRef.current);
+    return () => observer.disconnect();
+  }, [hasMoreArticles, loadingMoreArticles, articlePage, loadArticles, allArticles]);
 
-  // Filter based on active tab
+  // ─── Filter Videos + Articles by Tab ──────────────────
   const filteredVideos = tab === 'cricket'
     ? videos.filter(v => v.category === 'CRICKET')
     : tab === 'f1'
@@ -131,6 +178,7 @@ const Feed = () => {
     ? articles.filter(a => a.category === 'F1')
     : articles;
 
+  // ─── Loading Screen ────────────────────────────────────
   if (loading) return (
     <div className="min-h-screen bg-dark flex items-center justify-center pt-16">
       <div className="text-center">
@@ -144,13 +192,13 @@ const Feed = () => {
     <div className="min-h-screen bg-dark pt-16">
       <div className="max-w-7xl mx-auto px-4 py-8">
 
-        {/* Page header */}
+        {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-display tracking-wider text-white">YOUR FEED</h1>
           <p className="text-muted text-sm mt-1">Personalized content from your favorite sports</p>
         </div>
 
-        {/* Filter tabs */}
+        {/* Tabs */}
         <div className="flex gap-2 mb-8">
           {[
             { key: 'all', label: 'All' },
@@ -172,7 +220,7 @@ const Feed = () => {
           ))}
         </div>
 
-        {/* Videos section */}
+        {/* ── VIDEOS SECTION ── */}
         {tab !== 'news' && (
           <>
             <h2 className="text-lg font-semibold text-white mb-4">Latest Videos</h2>
@@ -182,44 +230,80 @@ const Feed = () => {
                 <p>No videos found.</p>
               </div>
             ) : (
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-8">
-                {filteredVideos.map((v) => <VideoCard key={v.id} video={v} />)}
-              </div>
+              <div className="grid grid-cols-3 gap-4 mb-6">
+  {filteredVideos.slice(0, 12).map((v) => (
+    <VideoCard key={v.id} video={v} />
+  ))}
+</div>
             )}
-            {hasMore && (
-              <div className="text-center mb-12">
-                <button
-                  onClick={loadMore}
-                  className="px-6 py-3 border border-border text-muted hover:border-primary hover:text-primary rounded-lg transition-all text-sm"
-                >
-                  Load More
-                </button>
-              </div>
-            )}
+
+            {/* Pagination */}
+            <div className="flex items-center justify-center gap-2 mt-6 mb-12">
+              <button
+                onClick={() => { setPage(0); loadFeed(0); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                disabled={page === 0}
+                className="px-3 py-2 border border-border text-muted hover:border-primary hover:text-primary rounded-lg transition-all text-sm disabled:opacity-30"
+              >
+                «
+              </button>
+              <button
+                onClick={() => { const p = page - 1; setPage(p); loadFeed(p); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                disabled={page === 0}
+                className="px-4 py-2 border border-border text-muted hover:border-primary hover:text-primary rounded-lg transition-all text-sm disabled:opacity-30"
+              >
+                ← Prev
+              </button>
+              <span className="px-5 py-2 bg-primary text-white text-sm rounded-lg font-medium">
+                Page {page + 1}
+              </span>
+              <button
+                onClick={() => { const p = page + 1; setPage(p); loadFeed(p); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                disabled={!hasMoreVideos}
+                className="px-4 py-2 border border-border text-muted hover:border-primary hover:text-primary rounded-lg transition-all text-sm disabled:opacity-30"
+              >
+                Next →
+              </button>
+            </div>
           </>
         )}
 
-        {/* Articles section */}
-        {tab !== 'f1' && tab !== 'cricket' ? (
+        {/* ── ARTICLES SECTION ── */}
+        {tab !== 'f1' && (
           <>
-            <h2 className="text-lg font-semibold text-white mb-4">Latest News</h2>
+            <h2 className="text-lg font-semibold text-white mb-4">
+              Latest News
+              <span className="ml-2 text-muted text-sm font-normal">
+                ({articles.length} of {allArticles.length} articles)
+              </span>
+            </h2>
+
             {filteredArticles.length === 0 ? (
               <div className="text-center py-12 text-muted">
                 <p className="text-4xl mb-3">📰</p>
                 <p>No articles found.</p>
               </div>
             ) : (
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filteredArticles.map((a) => <ArticleCard key={a.id} article={a} />)}
-              </div>
+              <>
+                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {filteredArticles.map((a, i) => (
+                    <ArticleCard key={`${a.id}-${i}`} article={a} />
+                  ))}
+                </div>
+
+                {/* Infinite scroll trigger */}
+                <div ref={articleObserverRef} className="py-8 flex justify-center">
+                  {loadingMoreArticles && (
+                    <div className="flex items-center gap-3 text-muted text-sm">
+                      <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                      Loading more articles...
+                    </div>
+                  )}
+                  {!hasMoreArticles && articles.length > 0 && (
+                    <p className="text-muted text-sm">✅ All articles loaded</p>
+                  )}
+                </div>
+              </>
             )}
-          </>
-        ) : (
-          <>
-            <h2 className="text-lg font-semibold text-white mb-4">Latest News</h2>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredArticles.map((a) => <ArticleCard key={a.id} article={a} />)}
-            </div>
           </>
         )}
 
