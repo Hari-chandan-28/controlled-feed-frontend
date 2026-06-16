@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getLiveMatches, getUpcomingMatches, getScorecard } from '../services/api';
-
+import { useSearchParams } from 'react-router-dom';
 // Match score card component
 const MatchCard = ({ match, isSelected, onClick }) => (
   <div
@@ -50,7 +50,8 @@ const MatchCard = ({ match, isSelected, onClick }) => (
 );
 
 const Cricket = () => {
-  const [tab, setTab] = useState('live');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tab = searchParams.get('tab') || 'live';
   const [liveMatches, setLiveMatches] = useState([]);
   const [upcomingMatches, setUpcomingMatches] = useState([]);
   const [scorecard, setScorecard] = useState(null);
@@ -119,22 +120,22 @@ const Cricket = () => {
             { key: 'live', label: '🔴 Live', count: liveMatches.length },
             { key: 'upcoming', label: '📅 Upcoming', count: upcomingMatches.length },
           ].map((t) => (
-            <button
-              key={t.key}
-              onClick={() => setTab(t.key)}
-              className={`px-5 py-2.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
-                tab === t.key
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-surface text-muted hover:text-white border border-border'
-              }`}
-            >
-              {t.label}
-              <span className={`text-xs px-1.5 py-0.5 rounded-full ${
-                tab === t.key ? 'bg-white/20' : 'bg-border'
-              }`}>
+              <button
+                  key={t.key}
+                  onClick={() => setSearchParams({ tab: t.key })}
+                  className={`px-5 py-2.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
+                      tab === t.key
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-surface text-muted hover:text-white border border-border'
+                  }`}
+              >
+                {t.label}
+                <span className={`text-xs px-1.5 py-0.5 rounded-full ${
+                    tab === t.key ? 'bg-white/20' : 'bg-border'
+                }`}>
                 {t.count}
-              </span>
-            </button>
+                 </span>
+              </button>
           ))}
         </div>
 

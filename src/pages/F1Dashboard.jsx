@@ -5,9 +5,11 @@ import {
   getRaceResults,
   getRaceSchedule
 } from '../services/api';
+import { useSearchParams } from 'react-router-dom';
 
 const F1Dashboard = () => {
-  const [tab, setTab] = useState('standings');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tab = searchParams.get('tab') || 'standings';
   const [drivers, setDrivers] = useState([]);
   const [constructors, setConstructors] = useState([]);
   const [results, setResults] = useState([]);
@@ -75,17 +77,17 @@ const F1Dashboard = () => {
         {/* Tabs */}
         <div className="flex gap-2 mb-8 overflow-x-auto pb-2">
           {tabs.map((t) => (
-            <button
-              key={t.key}
-              onClick={() => setTab(t.key)}
-              className={`px-5 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
-                tab === t.key
-                  ? 'bg-primary text-white'
-                  : 'bg-surface text-muted hover:text-white border border-border'
-              }`}
-            >
-              {t.label}
-            </button>
+              <button
+                  key={t.key}
+                  onClick={() => setSearchParams({ tab: t.key })}
+                  className={`px-5 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
+                      tab === t.key
+                          ? 'bg-primary text-white'
+                          : 'bg-surface text-muted hover:text-white border border-border'
+                  }`}
+              >
+                {t.label}
+              </button>
           ))}
         </div>
 
