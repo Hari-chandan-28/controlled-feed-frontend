@@ -27,28 +27,28 @@ API.interceptors.response.use((response) => response,
 // so we read the same VITE_API_URL env var directly here
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
-export const createLiveF1Stream = (onMessage, onError) => {
-  const token = localStorage.getItem('token');
-  const url = `${API_BASE}/api/f1/live/stream?token=${token}`;
+// export const createLiveF1Stream = (onMessage, onError) => {
+//   const token = localStorage.getItem('token');
+//   const url = `${API_BASE}/api/f1/live/stream?token=${token}`;
 
-  const es = new EventSource(url);
+//   const es = new EventSource(url);
 
-  es.onmessage = (event) => {
-    try {
-      const data = JSON.parse(event.data);
-      onMessage(data);
-    } catch (err) {
-      console.error('Failed to parse SSE data:', err);
-    }
-  };
+//   es.onmessage = (event) => {
+//     try {
+//       const data = JSON.parse(event.data);
+//       onMessage(data);
+//     } catch (err) {
+//       console.error('Failed to parse SSE data:', err);
+//     }
+//   };
 
-  es.onerror = (err) => {
-    console.error('SSE connection error:', err);
-    if (onError) onError(err);
-  };
+//   es.onerror = (err) => {
+//     console.error('SSE connection error:', err);
+//     if (onError) onError(err);
+//   };
 
-  return es;
-};
+//   return es;
+// };
 
 export const getSessionContext = () => API.get('/api/f1/live/session-context');
 export const getCircuitLayout = (circuitKey, year) =>
@@ -94,6 +94,26 @@ export const getScorecard = (matchId) => API.get(`/api/cricket/scorecard/${match
 // Chat
 export const askQuestion = (question) => API.post('/api/chat/ask', { question });
 export const updateProfile = (data) => API.put('/api/profile/update', data);
+export const createLiveF1Stream = (onMessage, onError) => {
+  const token = localStorage.getItem('token');
+  const url = `${API_BASE}/api/f1/live/stream?token=${token}`;
 
+  const es = new EventSource(url);
+
+  es.onopen = () => console.log('SSE connection opened');
+  es.onmessage = (event) => {
+    try {
+      onMessage(JSON.parse(event.data));
+    } catch (err) {
+      console.error('Failed to parse SSE data:', err);
+    }
+  };
+  es.onerror = (err) => {
+    console.error('SSE connection error:', err);
+    if (onError) onError(err);
+  };
+
+  return es;
+};
     
 export default API;

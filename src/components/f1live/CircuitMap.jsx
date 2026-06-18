@@ -10,14 +10,12 @@ const rotatePoint = (x, y, angleDeg) => {
   };
 };
 
-const CircuitMap = forwardRef(({ circuitLayout, drivers }, ref) => {
+const CircuitMap = forwardRef(({ circuitLayout }, ref) => {
   const canvasRef = useRef(null);
   const positionsRef = useRef({});
   const animationFrameRef = useRef(null);
   const boundsRef = useRef(null);
 
-  // Lock track bounds once when circuit layout loads — NOT every frame,
-  // otherwise the track appears to zoom/shift as cars move
   useEffect(() => {
     if (!circuitLayout?.trackPoints?.length) return;
     const rotation = circuitLayout.rotation || 0;
@@ -47,9 +45,6 @@ const CircuitMap = forwardRef(({ circuitLayout, drivers }, ref) => {
     };
   };
 
-  // Exposed to parent: call this whenever new SSE data arrives.
-  // We do NOT redraw immediately — just record new targets, the
-  // animation loop below handles smooth movement toward them.
   useImperativeHandle(ref, () => ({
     updatePositions: (newPositions) => {
       const now = performance.now();
@@ -61,8 +56,9 @@ const CircuitMap = forwardRef(({ circuitLayout, drivers }, ref) => {
           targetX: pos.x,
           targetY: pos.y,
           driverNumber: pos.driverNumber,
+          teamName: pos.teamName,
           startTime: now,
-          duration: 4000, // matches backend's 4s SSE interval
+          duration: 4000,
         };
       });
     },
@@ -78,7 +74,6 @@ const CircuitMap = forwardRef(({ circuitLayout, drivers }, ref) => {
       const ctx = canvas.getContext('2d');
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Static track outline
       ctx.strokeStyle = '#2a2a2a';
       ctx.lineWidth = 10;
       ctx.lineCap = 'round';
@@ -91,7 +86,6 @@ const CircuitMap = forwardRef(({ circuitLayout, drivers }, ref) => {
       ctx.closePath();
       ctx.stroke();
 
-      // Corner numbers
       circuitLayout?.corners?.forEach((corner) => {
         const rp = rotatePoint(corner.x, corner.y, circuitLayout.rotation || 0);
         const { nx, ny } = norm(rp.x, rp.y, canvas);
@@ -101,12 +95,11 @@ const CircuitMap = forwardRef(({ circuitLayout, drivers }, ref) => {
         ctx.fillText(String(corner.number), nx, ny);
       });
 
-      // Interpolated driver dots
       const now = performance.now();
       Object.values(positionsRef.current).forEach((p) => {
         const elapsed = now - p.startTime;
         const t = Math.min(elapsed / p.duration, 1);
-        const easedT = t * (2 - t); // ease-out
+        const easedT = t * (2 - t);
 
         const currentRaw = {
           x: p.prevX + (p.targetX - p.prevX) * easedT,
@@ -115,8 +108,7 @@ const CircuitMap = forwardRef(({ circuitLayout, drivers }, ref) => {
         const rotated = rotatePoint(currentRaw.x, currentRaw.y, circuitLayout?.rotation || 0);
         const { nx, ny } = norm(rotated.x, rotated.y, canvas);
 
-        const driverInfo = drivers?.find((d) => d.driverNumber === p.driverNumber) || {};
-        const color = TEAM_COLORS[driverInfo.teamName] || `#${driverInfo.teamColour}` || '#E8002D';
+        const color = TEAM_COLORS[p.teamName] || '#E8002D';
 
         ctx.beginPath();
         ctx.arc(nx, ny, 8, 0, Math.PI * 2);
@@ -139,7 +131,7 @@ const CircuitMap = forwardRef(({ circuitLayout, drivers }, ref) => {
 
     animationFrameRef.current = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(animationFrameRef.current);
-  }, [circuitLayout, drivers]);
+  }, [circuitLayout]);
 
   return (
     <div className="bg-card border border-border rounded-xl p-4">
