@@ -21,6 +21,40 @@ API.interceptors.response.use((response) => response,
     }
     return Promise.reject(error);
 });
+// Native browser EventSource — connects to the SSE stream on the backend.
+// Returns the EventSource instance so the caller can close() it on unmount.
+// EventSource is a native browser API — it does NOT go through axios,
+// so we read the same VITE_API_URL env var directly here
+const API_BASE = import.meta.env.VITE_API_URL || '';
+
+export const createLiveF1Stream = (onMessage, onError) => {
+  const token = localStorage.getItem('token');
+  const url = `${API_BASE}/api/f1/live/stream?token=${token}`;
+
+  const es = new EventSource(url);
+
+  es.onmessage = (event) => {
+    try {
+      const data = JSON.parse(event.data);
+      onMessage(data);
+    } catch (err) {
+      console.error('Failed to parse SSE data:', err);
+    }
+  };
+
+  es.onerror = (err) => {
+    console.error('SSE connection error:', err);
+    if (onError) onError(err);
+  };
+
+  return es;
+};
+
+export const getSessionContext = () => API.get('/api/f1/live/session-context');
+export const getCircuitLayout = (circuitKey, year) =>
+  API.get(`/api/f1/circuit/${circuitKey}/${year}`);
+export const getAllCircuits = (year) => API.get(`/api/f1/circuits/${year}`);
+export const getCurrentDrivers = () => API.get('/api/f1/drivers/current');
 
 // Auth
 export const signup = (data) => API.post('/api/auth/signup', data);
@@ -60,4 +94,6 @@ export const getScorecard = (matchId) => API.get(`/api/cricket/scorecard/${match
 // Chat
 export const askQuestion = (question) => API.post('/api/chat/ask', { question });
 export const updateProfile = (data) => API.put('/api/profile/update', data);
+
+    
 export default API;

@@ -8,13 +8,14 @@ const Navbar = () => {
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const links = [
-    { path: '/feed', label: 'Feed', icon: '📰' },
-    { path: '/f1', label: 'F1', icon: '🏎️' },
-    { path: '/cricket', label: 'Cricket', icon: '🏏' },
-    { path: '/chat', label: 'AI Chat', icon: '🤖' },
-    { path: '/profile', label: 'Profile', icon: '👤' },
-  ];
+const links = [
+  { path: '/feed', label: 'Feed', icon: '📰' },
+  { path: '/f1', label: 'F1', icon: '🏎️' },
+  { path: '/live', label: 'Live', icon: '🔴' },
+  { path: '/cricket', label: 'Cricket', icon: '🏏' },
+  { path: '/chat', label: 'AI Chat', icon: '🤖' },
+  { path: '/profile', label: 'Profile', icon: '👤' },
+];
 
   const handleLogout = () => {
     logoutUser();

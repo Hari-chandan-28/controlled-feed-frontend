@@ -7,6 +7,7 @@ import {
 } from '../services/api';
 import { useSearchParams } from 'react-router-dom';
 
+
 const F1Dashboard = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const tab = searchParams.get('tab') || 'standings';
@@ -15,7 +16,7 @@ const F1Dashboard = () => {
   const [results, setResults] = useState([]);
   const [schedule, setSchedule] = useState([]);
   const [loading, setLoading] = useState(true);
-
+  
   // Load all F1 data at once
   useEffect(() => {
     const load = async () => {

@@ -10,6 +10,7 @@ import Cricket from './pages/Cricket';
 import Chatbot from './pages/Chatbot';
 import Profile from './pages/Profile';
 import Navbar from './components/Navbar';
+import F1Live from './pages/F1Live';
 
 const ProtectedRoute = ({ children }) => {
   const { isLoggedIn } = useAuth();
@@ -31,6 +32,7 @@ const AppRoutes = () => {
         <Route path="/cricket" element={<ProtectedRoute><Cricket /></ProtectedRoute>} />
         <Route path="/chat" element={<ProtectedRoute><Chatbot /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+        <Route path="/live" element={<ProtectedRoute><F1Live /></ProtectedRoute>} />
       </Routes>
     </BrowserRouter>
   );
