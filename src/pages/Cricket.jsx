@@ -1,54 +1,218 @@
 import { useState, useEffect } from 'react';
 import { getLiveMatches, getUpcomingMatches, getScorecard } from '../services/api';
 import { useSearchParams } from 'react-router-dom';
-// Match score card component
-const MatchCard = ({ match, isSelected, onClick }) => (
+import PageWrapper from '../components/PageWrapper';
+
+const isLiveMatch = (match) =>
+  match.status?.toLowerCase().includes('live') ||
+  match.status?.toLowerCase().includes('progress');
+
+// ── Match Card ────────────────────────────────────────────
+const MatchCard = ({ match, onClick }) => (
   <div
     onClick={onClick}
-    className={`cursor-pointer bg-card border rounded-xl p-4 transition-all ${
-      isSelected ? 'border-blue-500 ring-2 ring-blue-500/30' : 'border-border hover:border-white'
-    }`}
+    className="glass rounded-2xl p-5 cursor-pointer transition-all duration-200
+               hover:-translate-y-1 hover:border-white/20 hover:shadow-lg
+               hover:shadow-black/30 active:scale-98"
   >
-    {/* Status badge */}
     <div className="flex items-center justify-between mb-3">
-      <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-        match.status?.toLowerCase().includes('live') ||
-        match.status?.toLowerCase().includes('progress')
-          ? 'bg-green-500/20 text-green-400'
-          : 'bg-surface text-muted'
+      <span className={`text-xs px-3 py-1 rounded-full font-bold ${
+        isLiveMatch(match)
+          ? 'bg-live/15 text-live'
+          : 'bg-white/5 text-white/40'
       }`}>
-        {match.status?.toLowerCase().includes('live') ||
-         match.status?.toLowerCase().includes('progress')
-          ? '🔴 LIVE'
-          : match.status?.slice(0, 25)}
+        {isLiveMatch(match) ? (
+          <span className="flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-live animate-pulse inline-block" />
+            LIVE
+          </span>
+        ) : match.status?.slice(0, 20)}
       </span>
-      <span className="text-muted text-xs uppercase">{match.matchType}</span>
+      <span className="text-white/30 text-xs font-bold uppercase tracking-widest">
+        {match.matchType}
+      </span>
     </div>
 
-    {/* Match name */}
-    <h3 className="text-white font-semibold text-sm mb-3">{match.name}</h3>
+    <h3 className="text-white font-bold text-sm mb-4 leading-snug">{match.name}</h3>
 
-    {/* Scores */}
     {match.scores?.length > 0 && (
-      <div className="space-y-2">
+      <div className="space-y-2 mb-3">
         {match.scores.map((score, i) => (
           <div key={i} className="flex items-center justify-between">
-            <span className="text-muted text-xs truncate max-w-[140px]">
-              {score.inning}
-            </span>
-            <span className="text-white font-mono text-sm font-semibold">
+            <span className="text-white/40 text-xs truncate max-w-[140px]">{score.inning}</span>
+            <span className="text-white font-bold text-sm">
               {score.runs}/{score.wickets}
-              <span className="text-muted text-xs ml-1">({score.overs} ov)</span>
+              <span className="text-white/40 text-xs ml-1 font-normal">({score.overs})</span>
             </span>
           </div>
         ))}
       </div>
     )}
 
-    <p className="text-muted text-xs mt-3 truncate">📍 {match.venue}</p>
+    <div className="flex items-center justify-between pt-3 border-t border-white/5">
+      <span className="text-white/30 text-xs truncate">📍 {match.venue}</span>
+      <span className="text-primary text-xs font-semibold">Tap for scorecard →</span>
+    </div>
   </div>
 );
 
+// ── Scorecard Modal ───────────────────────────────────────
+const ScorecardModal = ({ scorecard, loading, match, onClose }) => {
+  // Close on Escape key
+  useEffect(() => {
+    const handler = (e) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
+               background: 'rgba(8,9,12,0.7)' }}
+      onClick={onClose}
+    >
+      <div
+        className="relative w-full max-w-2xl max-h-[80vh] overflow-y-auto rounded-3xl"
+        style={{
+          background: 'rgba(255,255,255,0.06)',
+          backdropFilter: 'blur(40px)',
+          WebkitBackdropFilter: 'blur(40px)',
+          border: '1px solid rgba(255,255,255,0.12)',
+          boxShadow: '0 40px 80px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.1)',
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Mac dots + close */}
+        <div className="sticky top-0 z-10 flex items-center justify-between px-6 py-4
+                        border-b border-white/8"
+             style={{ background: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(20px)' }}>
+          <div className="flex gap-2 group">
+            <div onClick={onClose}
+                 className="relative w-3 h-3 rounded-full bg-[#FF5F57] cursor-pointer
+                            flex items-center justify-center">
+              <span className="absolute opacity-0 group-hover:opacity-100 text-[#800000]
+                               text-[8px] font-black transition-opacity">✕</span>
+            </div>
+            <div className="w-3 h-3 rounded-full bg-[#FFBD2E]" />
+            <div className="w-3 h-3 rounded-full bg-[#28C840]" />
+          </div>
+          <span className="text-white/50 text-xs font-semibold">SCORECARD</span>
+          <button onClick={onClose}
+                  className="text-white/30 hover:text-white text-xs font-semibold transition-colors">
+            ESC to close
+          </button>
+        </div>
+
+        {/* Loading state */}
+        {loading && (
+          <div className="flex items-center justify-center h-48">
+            <div className="w-8 h-8 border-2 border-primary border-t-transparent
+                            rounded-full animate-spin" />
+          </div>
+        )}
+
+        {/* Scorecard content */}
+        {scorecard && !loading && (
+          <div className="p-6">
+            {/* Match info */}
+            <div className="mb-6">
+              <h2 className="text-white font-black text-lg leading-snug mb-2">
+                {scorecard.name}
+              </h2>
+              <p className={`text-xs font-semibold mb-1 ${
+                isLiveMatch({ status: scorecard.status }) ? 'text-live' : 'text-white/40'
+              }`}>
+                {scorecard.status}
+              </p>
+              <p className="text-white/30 text-xs">📍 {scorecard.venue}</p>
+            </div>
+
+            {/* Batting */}
+            {scorecard.batting?.length > 0 && (
+              <div className="mb-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="w-1 h-5 bg-primary rounded-full" />
+                  <h3 className="text-white font-black text-sm tracking-tight">BATTING</h3>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="border-b border-white/8">
+                        {['Batter', 'R', 'B', '4s', '6s', 'SR'].map((h, i) => (
+                          <th key={h}
+                              className={`py-2 px-2 text-white/30 font-bold uppercase
+                                         tracking-widest ${i === 0 ? 'text-left' : 'text-right'}`}>
+                            {h}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {scorecard.batting.map((b, i) => (
+                        <tr key={i} className="border-b border-white/5 hover:bg-white/3 transition-colors">
+                          <td className="py-2.5 px-2 text-white font-medium">{b.player}</td>
+                          <td className="py-2.5 px-2 text-right text-white font-black">{b.runs}</td>
+                          <td className="py-2.5 px-2 text-right text-white/50">{b.balls}</td>
+                          <td className="py-2.5 px-2 text-right text-white/50">{b.fours}</td>
+                          <td className="py-2.5 px-2 text-right text-white/50">{b.sixes}</td>
+                          <td className="py-2.5 px-2 text-right text-white/50">
+                            {b.strikeRate?.toFixed(1)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* Bowling */}
+            {scorecard.bowling?.length > 0 && (
+              <div>
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="w-1 h-5 bg-live rounded-full" />
+                  <h3 className="text-white font-black text-sm tracking-tight">BOWLING</h3>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="border-b border-white/8">
+                        {['Bowler', 'O', 'M', 'R', 'W', 'Eco'].map((h, i) => (
+                          <th key={h}
+                              className={`py-2 px-2 text-white/30 font-bold uppercase
+                                         tracking-widest ${i === 0 ? 'text-left' : 'text-right'}`}>
+                            {h}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {scorecard.bowling.map((b, i) => (
+                        <tr key={i} className="border-b border-white/5 hover:bg-white/3 transition-colors">
+                          <td className="py-2.5 px-2 text-white font-medium">{b.player}</td>
+                          <td className="py-2.5 px-2 text-right text-white/50">{b.overs}</td>
+                          <td className="py-2.5 px-2 text-right text-white/50">{b.maidens}</td>
+                          <td className="py-2.5 px-2 text-right text-white/50">{b.runs}</td>
+                          <td className="py-2.5 px-2 text-right text-white font-black">{b.wickets}</td>
+                          <td className="py-2.5 px-2 text-right text-white/50">
+                            {b.economy?.toFixed(1)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// ── Main Cricket Page ─────────────────────────────────────
 const Cricket = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const tab = searchParams.get('tab') || 'live';
@@ -58,14 +222,14 @@ const Cricket = () => {
   const [selectedMatch, setSelectedMatch] = useState(null);
   const [loading, setLoading] = useState(true);
   const [scorecardLoading, setScorecardLoading] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
 
   useEffect(() => {
     const load = async () => {
       setLoading(true);
       try {
         const [live, upcoming] = await Promise.all([
-          getLiveMatches(),
-          getUpcomingMatches()
+          getLiveMatches(), getUpcomingMatches()
         ]);
         setLiveMatches(live.data);
         setUpcomingMatches(upcoming.data);
@@ -78,10 +242,10 @@ const Cricket = () => {
     load();
   }, []);
 
-  // Load scorecard when match is clicked
   const loadScorecard = async (match) => {
     setSelectedMatch(match);
     setScorecard(null);
+    setModalOpen(true);
     setScorecardLoading(true);
     try {
       const res = await getScorecard(match.id);
@@ -93,183 +257,100 @@ const Cricket = () => {
     }
   };
 
+  const closeModal = () => {
+    setModalOpen(false);
+    setScorecard(null);
+    setSelectedMatch(null);
+  };
+
   const currentMatches = tab === 'live' ? liveMatches : upcomingMatches;
 
   if (loading) return (
-    <div className="min-h-screen bg-dark flex items-center justify-center pt-16">
-      <div className="w-10 h-10 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-    </div>
+    <PageWrapper beam="cricket">
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="w-10 h-10 border-2 border-primary border-t-transparent
+                        rounded-full animate-spin" />
+      </div>
+    </PageWrapper>
   );
 
   return (
-    <div className="min-h-screen bg-dark pt-16">
-      <div className="max-w-6xl mx-auto px-4 py-8">
+    <PageWrapper beam="cricket">
+      {/* Scorecard modal */}
+      {modalOpen && (
+        <ScorecardModal
+          scorecard={scorecard}
+          loading={scorecardLoading}
+          match={selectedMatch}
+          onClose={closeModal}
+        />
+      )}
+
+      <div className="max-w-5xl mx-auto px-6 py-10">
 
         {/* Header */}
-        <div className="flex items-center gap-4 mb-8">
-          <span className="text-5xl">🏏</span>
-          <div>
-            <h1 className="text-3xl font-display tracking-wider text-white">CRICKET</h1>
-            <p className="text-muted text-sm">Live scores, scorecards and upcoming matches</p>
+        <div className="mb-8">
+          <div className="flex items-center gap-3 mb-1">
+            <div className="w-1 h-8 bg-primary rounded-full" />
+            <h1 className="text-3xl font-black tracking-tight text-white">Cricket</h1>
           </div>
+          <p className="text-white/40 text-sm font-medium ml-4">
+            Live scores, scorecards and upcoming matches
+          </p>
         </div>
 
         {/* Tabs */}
         <div className="flex gap-2 mb-8">
           {[
-            { key: 'live', label: '🔴 Live', count: liveMatches.length },
-            { key: 'upcoming', label: '📅 Upcoming', count: upcomingMatches.length },
+            { key: 'live',     label: 'Live',     count: liveMatches.length },
+            { key: 'upcoming', label: 'Upcoming', count: upcomingMatches.length },
           ].map((t) => (
-              <button
-                  key={t.key}
-                  onClick={() => setSearchParams({ tab: t.key })}
-                  className={`px-5 py-2.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
-                      tab === t.key
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-surface text-muted hover:text-white border border-border'
-                  }`}
-              >
-                {t.label}
-                <span className={`text-xs px-1.5 py-0.5 rounded-full ${
-                    tab === t.key ? 'bg-white/20' : 'bg-border'
-                }`}>
+            <button
+              key={t.key}
+              onClick={() => setSearchParams({ tab: t.key })}
+              className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all
+                         flex items-center gap-2 ${
+                tab === t.key
+                  ? 'bg-primary text-white'
+                  : 'glass text-white/50 hover:text-white'
+              }`}
+            >
+              {t.key === 'live' && (
+                <span className={`w-1.5 h-1.5 rounded-full ${
+                  tab === 'live' ? 'bg-white animate-pulse' : 'bg-white/30'
+                }`} />
+              )}
+              {t.label}
+              <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${
+                tab === t.key ? 'bg-white/20 text-white' : 'bg-white/5 text-white/30'
+              }`}>
                 {t.count}
-                 </span>
-              </button>
+              </span>
+            </button>
           ))}
         </div>
 
-        {/* Two column layout - matches list + scorecard */}
-        <div className="grid lg:grid-cols-5 gap-6">
-
-          {/* LEFT - Match list */}
-          <div className="lg:col-span-2 space-y-3">
-            {currentMatches.length === 0 ? (
-              <div className="text-center py-16 text-muted">
-                <p className="text-4xl mb-3">🏏</p>
-                <p>{tab === 'live' ? 'No live matches right now.' : 'No upcoming matches.'}</p>
-              </div>
-            ) : (
-              currentMatches.map((match) => (
-                <MatchCard
-                  key={match.id}
-                  match={match}
-                  isSelected={selectedMatch?.id === match.id}
-                  onClick={() => loadScorecard(match)}
-                />
-              ))
-            )}
+        {/* Match grid */}
+        {currentMatches.length === 0 ? (
+          <div className="glass rounded-2xl py-20 text-center">
+            <p className="text-4xl mb-3">🏏</p>
+            <p className="text-white/40 text-sm font-medium">
+              {tab === 'live' ? 'No live matches right now' : 'No upcoming matches'}
+            </p>
           </div>
-
-          {/* RIGHT - Scorecard */}
-          <div className="lg:col-span-3">
-
-            {/* No match selected */}
-            {!selectedMatch && (
-              <div className="bg-card border border-border rounded-xl flex items-center justify-center h-64">
-                <div className="text-center text-muted">
-                  <p className="text-4xl mb-3">👆</p>
-                  <p className="text-sm">Select a match to view scorecard</p>
-                </div>
-              </div>
-            )}
-
-            {/* Loading scorecard */}
-            {scorecardLoading && (
-              <div className="bg-card border border-border rounded-xl flex items-center justify-center h-64">
-                <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-              </div>
-            )}
-
-            {/* Scorecard loaded */}
-            {scorecard && !scorecardLoading && (
-              <div className="bg-card border border-border rounded-xl overflow-hidden">
-
-                {/* Match info */}
-                <div className="p-4 border-b border-border">
-                  <h2 className="text-white font-semibold">{scorecard.name}</h2>
-                  <p className="text-muted text-xs mt-1">{scorecard.status}</p>
-                  <p className="text-muted text-xs">📍 {scorecard.venue}</p>
-                </div>
-
-                {/* Batting table */}
-                {scorecard.batting?.length > 0 && (
-                  <div className="p-4">
-                    <h3 className="text-white text-sm font-semibold mb-3 flex items-center gap-2">
-                      <span className="w-1 h-4 bg-blue-500 rounded" />
-                      Batting
-                    </h3>
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-xs">
-                        <thead>
-                          <tr className="border-b border-border">
-                            <th className="text-left py-2 text-muted">Batter</th>
-                            <th className="text-right py-2 text-muted">R</th>
-                            <th className="text-right py-2 text-muted">B</th>
-                            <th className="text-right py-2 text-muted">4s</th>
-                            <th className="text-right py-2 text-muted">6s</th>
-                            <th className="text-right py-2 text-muted">SR</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {scorecard.batting.map((b, i) => (
-                            <tr key={i} className="border-b border-border/30">
-                              <td className="py-2 text-white">{b.player}</td>
-                              <td className="py-2 text-right text-white font-bold">{b.runs}</td>
-                              <td className="py-2 text-right text-muted">{b.balls}</td>
-                              <td className="py-2 text-right text-muted">{b.fours}</td>
-                              <td className="py-2 text-right text-muted">{b.sixes}</td>
-                              <td className="py-2 text-right text-muted">{b.strikeRate?.toFixed(1)}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                )}
-
-                {/* Bowling table */}
-                {scorecard.bowling?.length > 0 && (
-                  <div className="p-4 border-t border-border">
-                    <h3 className="text-white text-sm font-semibold mb-3 flex items-center gap-2">
-                      <span className="w-1 h-4 bg-green-500 rounded" />
-                      Bowling
-                    </h3>
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-xs">
-                        <thead>
-                          <tr className="border-b border-border">
-                            <th className="text-left py-2 text-muted">Bowler</th>
-                            <th className="text-right py-2 text-muted">O</th>
-                            <th className="text-right py-2 text-muted">M</th>
-                            <th className="text-right py-2 text-muted">R</th>
-                            <th className="text-right py-2 text-muted">W</th>
-                            <th className="text-right py-2 text-muted">Eco</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {scorecard.bowling.map((b, i) => (
-                            <tr key={i} className="border-b border-border/30">
-                              <td className="py-2 text-white">{b.player}</td>
-                              <td className="py-2 text-right text-muted">{b.overs}</td>
-                              <td className="py-2 text-right text-muted">{b.maidens}</td>
-                              <td className="py-2 text-right text-muted">{b.runs}</td>
-                              <td className="py-2 text-right text-white font-bold">{b.wickets}</td>
-                              <td className="py-2 text-right text-muted">{b.economy?.toFixed(1)}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                )}
-
-              </div>
-            )}
+        ) : (
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {currentMatches.map((match) => (
+              <MatchCard
+                key={match.id}
+                match={match}
+                onClick={() => loadScorecard(match)}
+              />
+            ))}
           </div>
-        </div>
+        )}
       </div>
-    </div>
+    </PageWrapper>
   );
 };
 

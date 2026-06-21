@@ -90,7 +90,7 @@ export const getLiveIntervals = () => API.get('/api/f1/live/intervals');
 export const getLiveMatches = () => API.get('/api/cricket/live');
 export const getUpcomingMatches = () => API.get('/api/cricket/upcoming');
 export const getScorecard = (matchId) => API.get(`/api/cricket/scorecard/${matchId}`);
-
+export const updateUsername = (data) => API.put('/api/profile/update-name', data);
 // Chat
 export const askQuestion = (question) => API.post('/api/chat/ask', { question });
 export const updateProfile = (data) => API.put('/api/profile/update', data);

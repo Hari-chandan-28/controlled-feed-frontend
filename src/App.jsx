@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 
 import Landing from './pages/Landing';
@@ -17,12 +17,14 @@ const ProtectedRoute = ({ children }) => {
   return isLoggedIn ? children : <Navigate to="/login" />;
 };
 
-const AppRoutes = () => {
-  const { isLoggedIn } = useAuth();
+// AppLayout sits INSIDE BrowserRouter so useLocation works correctly
+const AppLayout = () => {
+  const location = useLocation();
+  const hideNavbar = ['/', '/login', '/signup'].includes(location.pathname);
+
   return (
-    <BrowserRouter>
-      {/* Show Navbar only when logged in */}
-      {isLoggedIn && <Navbar />}
+    <>
+      {!hideNavbar && <Navbar />}
       <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
@@ -34,14 +36,16 @@ const AppRoutes = () => {
         <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
         <Route path="/live" element={<ProtectedRoute><F1Live /></ProtectedRoute>} />
       </Routes>
-    </BrowserRouter>
+    </>
   );
 };
 
 export default function App() {
   return (
     <AuthProvider>
-      <AppRoutes />
+      <BrowserRouter>
+        <AppLayout />
+      </BrowserRouter>
     </AuthProvider>
   );
 }

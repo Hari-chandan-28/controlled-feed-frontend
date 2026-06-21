@@ -1,4 +1,3 @@
-// src/components/f1live/CircuitMap.jsx
 import { useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import { TEAM_COLORS } from '../../constants/teamColors';
 
@@ -23,10 +22,8 @@ const CircuitMap = forwardRef(({ circuitLayout }, ref) => {
     const xs = rotated.map((p) => p.x);
     const ys = rotated.map((p) => p.y);
     boundsRef.current = {
-      minX: Math.min(...xs),
-      maxX: Math.max(...xs),
-      minY: Math.min(...ys),
-      maxY: Math.max(...ys),
+      minX: Math.min(...xs), maxX: Math.max(...xs),
+      minY: Math.min(...ys), maxY: Math.max(...ys),
       rotatedTrack: rotated,
     };
   }, [circuitLayout]);
@@ -34,7 +31,7 @@ const CircuitMap = forwardRef(({ circuitLayout }, ref) => {
   const norm = (x, y, canvas) => {
     const b = boundsRef.current;
     if (!b) return { nx: 0, ny: 0 };
-    const padding = 40;
+    const padding = 52;
     const scale = Math.min(
       (canvas.width - padding * 2) / (b.maxX - b.minX || 1),
       (canvas.height - padding * 2) / (b.maxY - b.minY || 1)
@@ -74,8 +71,11 @@ const CircuitMap = forwardRef(({ circuitLayout }, ref) => {
       const ctx = canvas.getContext('2d');
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      ctx.strokeStyle = '#2a2a2a';
-      ctx.lineWidth = 10;
+      // Track shadow/glow
+      ctx.shadowColor = 'rgba(255,255,255,0.08)';
+      ctx.shadowBlur = 12;
+      ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+      ctx.lineWidth = 20;
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
       ctx.beginPath();
@@ -85,16 +85,43 @@ const CircuitMap = forwardRef(({ circuitLayout }, ref) => {
       });
       ctx.closePath();
       ctx.stroke();
+      ctx.shadowBlur = 0;
 
+      // Track surface
+      ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+      ctx.lineWidth = 10;
+      ctx.beginPath();
+      boundsRef.current.rotatedTrack.forEach((p, i) => {
+        const { nx, ny } = norm(p.x, p.y, canvas);
+        i === 0 ? ctx.moveTo(nx, ny) : ctx.lineTo(nx, ny);
+      });
+      ctx.closePath();
+      ctx.stroke();
+
+      // Track center line (dashed)
+      ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([8, 12]);
+      ctx.beginPath();
+      boundsRef.current.rotatedTrack.forEach((p, i) => {
+        const { nx, ny } = norm(p.x, p.y, canvas);
+        i === 0 ? ctx.moveTo(nx, ny) : ctx.lineTo(nx, ny);
+      });
+      ctx.closePath();
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Corner numbers
       circuitLayout?.corners?.forEach((corner) => {
         const rp = rotatePoint(corner.x, corner.y, circuitLayout.rotation || 0);
         const { nx, ny } = norm(rp.x, rp.y, canvas);
-        ctx.fillStyle = '#444';
-        ctx.font = '9px Inter';
+        ctx.fillStyle = 'rgba(255,255,255,0.20)';
+        ctx.font = 'bold 9px Montserrat, Inter, sans-serif';
         ctx.textAlign = 'center';
         ctx.fillText(String(corner.number), nx, ny);
       });
 
+      // Driver dots — interpolated with glow
       const now = performance.now();
       Object.values(positionsRef.current).forEach((p) => {
         const elapsed = now - p.startTime;
@@ -107,23 +134,41 @@ const CircuitMap = forwardRef(({ circuitLayout }, ref) => {
         };
         const rotated = rotatePoint(currentRaw.x, currentRaw.y, circuitLayout?.rotation || 0);
         const { nx, ny } = norm(rotated.x, rotated.y, canvas);
+        const color = TEAM_COLORS[p.teamName] || '#FF1E3C';
 
-        const color = TEAM_COLORS[p.teamName] || '#E8002D';
-
+        // Outer glow ring
+        ctx.shadowColor = color;
+        ctx.shadowBlur = 12;
         ctx.beginPath();
-        ctx.arc(nx, ny, 8, 0, Math.PI * 2);
-        ctx.fillStyle = color + '40';
+        ctx.arc(nx, ny, 7, 0, Math.PI * 2);
+        ctx.fillStyle = color + '30';
         ctx.fill();
+        ctx.shadowBlur = 0;
 
+        // Solid dot
         ctx.beginPath();
         ctx.arc(nx, ny, 5, 0, Math.PI * 2);
         ctx.fillStyle = color;
         ctx.fill();
 
-        ctx.fillStyle = '#fff';
-        ctx.font = 'bold 8px Inter';
+        // White center
+        ctx.beginPath();
+        ctx.arc(nx, ny, 2, 0, Math.PI * 2);
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+
+        // Driver number — pill background
+        ctx.fillStyle = 'rgba(0,0,0,0.7)';
+        const label = String(p.driverNumber);
+        ctx.font = 'bold 9px Montserrat, Inter, sans-serif';
+        const w = ctx.measureText(label).width + 6;
+        ctx.beginPath();
+        ctx.roundRect(nx - w / 2, ny - 24, w, 13, 3);
+        ctx.fill();
+
+        ctx.fillStyle = '#ffffff';
         ctx.textAlign = 'center';
-        ctx.fillText(String(p.driverNumber), nx, ny - 10);
+        ctx.fillText(label, nx, ny - 14);
       });
 
       animationFrameRef.current = requestAnimationFrame(animate);
@@ -134,19 +179,55 @@ const CircuitMap = forwardRef(({ circuitLayout }, ref) => {
   }, [circuitLayout]);
 
   return (
-    <div className="bg-card border border-border rounded-xl p-4">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-white font-semibold text-sm">
-          {circuitLayout?.circuitName || 'Circuit Map'}
-        </h3>
-        <span className="text-xs text-muted">Updates every 4s</span>
+    <div className="rounded-2xl overflow-hidden"
+         style={{
+           background: 'linear-gradient(160deg, #0D0F14 0%, #080A0D 100%)',
+           border: '1px solid rgba(255,255,255,0.10)',
+           boxShadow: '0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06)',
+         }}>
+
+      {/* Header */}
+      <div className="flex items-center justify-between px-5 py-4"
+           style={{ borderBottom: '1px solid rgba(255,255,255,0.06)',
+                    background: 'rgba(0,229,160,0.04)' }}>
+        <div className="flex items-center gap-2.5">
+          <div className="w-1 h-5 rounded-full bg-live" />
+          <h3 className="text-white font-black text-sm tracking-widest">
+            {circuitLayout?.circuitName
+              ? circuitLayout.circuitName.toUpperCase()
+              : 'CIRCUIT MAP'}
+          </h3>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="dot-live" />
+          <span className="text-white/25 text-xs font-semibold">4s REFRESH</span>
+        </div>
       </div>
+
+      {/* Canvas */}
       {!circuitLayout?.trackPoints?.length ? (
-        <div className="flex items-center justify-center h-64 text-muted text-sm">
-          No circuit data available
+        <div className="flex flex-col items-center justify-center h-80 text-center px-6">
+          <div className="w-16 h-16 rounded-2xl flex items-center justify-center
+                          text-3xl mb-4"
+               style={{ background: 'rgba(255,255,255,0.04)',
+                        border: '1px solid rgba(255,255,255,0.08)' }}>
+            🗺️
+          </div>
+          <p className="text-white/35 text-sm font-semibold mb-1">
+            Waiting for circuit data
+          </p>
+          <p className="text-white/15 text-xs">
+            Track layout loads when a session is detected
+          </p>
         </div>
       ) : (
-        <canvas ref={canvasRef} width={500} height={400} className="w-full rounded-lg bg-surface" />
+        <canvas
+          ref={canvasRef}
+          width={600}
+          height={450}
+          className="w-full block"
+          style={{ background: 'transparent' }}
+        />
       )}
     </div>
   );

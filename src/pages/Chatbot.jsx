@@ -1,19 +1,19 @@
-import  { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { askQuestion } from '../services/api';
+import PageWrapper from '../components/PageWrapper';
 
-// Single message bubble component
 const MessageBubble = ({ message }) => (
   <div className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
     <div className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
       message.role === 'user'
         ? 'bg-primary text-white rounded-br-sm'
-        : 'bg-card border border-border text-white rounded-bl-sm'
+        : 'glass text-white rounded-bl-sm'
     }`}>
-      {/* Bot avatar */}
       {message.role === 'bot' && (
         <div className="flex items-center gap-2 mb-2">
-          <span className="text-lg">🤖</span>
-          <span className="text-xs text-muted font-medium">AI Sports Expert</span>
+          <div className="w-5 h-5 rounded-full bg-primary/20 border border-primary/30
+                          flex items-center justify-center text-xs">🤖</div>
+          <span className="text-xs text-white/40 font-semibold">AI Sports Expert</span>
         </div>
       )}
       <p className="whitespace-pre-wrap">{message.text}</p>
@@ -21,28 +21,15 @@ const MessageBubble = ({ message }) => (
   </div>
 );
 
-// Suggested question pill
-const SuggestedQuestion = ({ question, onClick }) => (
-  <button
-    onClick={() => onClick(question)}
-    className="px-3 py-2 bg-surface border border-border text-muted text-xs rounded-lg hover:border-primary hover:text-white transition-all text-left"
-  >
-    {question}
-  </button>
-);
-
 const Chatbot = () => {
-  const [messages, setMessages] = useState([
-    {
-      role: 'bot',
-      text: "Hi! I'm your AI sports expert 🏎️🏏\n\nAsk me anything about Formula 1 or Cricket — drivers, teams, records, rules, history, and more!"
-    }
-  ]);
+  const [messages, setMessages] = useState([{
+    role: 'bot',
+    text: "Hi! I'm your AI sports expert \n\nAsk me anything about Formula 1 or Cricket — drivers, teams, records, rules, history, and more!"
+  }]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef(null);
 
-  // Suggested questions to help user get started
   const suggestions = [
     "Who won the 2024 F1 championship?",
     "Who has the most F1 wins ever?",
@@ -52,7 +39,6 @@ const Chatbot = () => {
     "What is the Duckworth-Lewis method?",
   ];
 
-  // Auto scroll to bottom when new message arrives
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
@@ -60,17 +46,13 @@ const Chatbot = () => {
   const sendMessage = async (text) => {
     const question = text || input.trim();
     if (!question || loading) return;
-
-    // Add user message
     setMessages((prev) => [...prev, { role: 'user', text: question }]);
     setInput('');
     setLoading(true);
-
     try {
       const res = await askQuestion(question);
-      // Add bot response
       setMessages((prev) => [...prev, { role: 'bot', text: res.data.answer }]);
-    } catch (err) {
+    } catch {
       setMessages((prev) => [...prev, {
         role: 'bot',
         text: 'Sorry, I could not process that right now. Please try again!'
@@ -81,55 +63,63 @@ const Chatbot = () => {
   };
 
   const handleKeyDown = (e) => {
-    // Send on Enter, new line on Shift+Enter
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
-    }
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
   };
 
   return (
-    <div className="min-h-screen bg-dark pt-16 flex flex-col">
-      <div className="max-w-3xl mx-auto w-full px-4 py-8 flex flex-col flex-1">
+    <PageWrapper beam="chat">
+      <div className="max-w-3xl mx-auto px-6 py-10 flex flex-col"
+           style={{ minHeight: 'calc(100vh - 64px)' }}>
 
         {/* Header */}
-        <div className="flex items-center gap-4 mb-6">
-          <span className="text-5xl">🤖</span>
-          <div>
-            <h1 className="text-3xl font-display tracking-wider text-white">AI CHAT</h1>
-            <p className="text-muted text-sm">Powered by Google Gemini · F1 & Cricket only</p>
+        <div className="mb-6">
+          <div className="flex items-center gap-3 mb-1">
+            <div className="w-1 h-8 bg-primary rounded-full" />
+            <h1 className="text-3xl font-black tracking-tight text-white">AI Chat</h1>
           </div>
+          <p className="text-white/40 text-sm font-medium ml-4">
+            Powered by Google Gemini · F1 & Cricket only
+          </p>
         </div>
 
-        {/* Suggested questions - show only at start */}
+        {/* Suggestions */}
         {messages.length === 1 && (
           <div className="mb-6">
-            <p className="text-muted text-xs uppercase tracking-wider mb-3">Suggested questions</p>
+            <p className="text-white/30 text-xs font-bold uppercase tracking-widest mb-3">
+              Suggested questions
+            </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {suggestions.map((q) => (
-                <SuggestedQuestion key={q} question={q} onClick={sendMessage} />
+                <button
+                  key={q}
+                  onClick={() => sendMessage(q)}
+                  className="glass px-4 py-3 text-white/60 text-xs font-medium rounded-xl
+                             hover:text-white hover:border-primary/40 transition-all text-left"
+                >
+                  {q}
+                </button>
               ))}
             </div>
           </div>
         )}
 
-        {/* Messages area */}
-        <div className="flex-1 bg-surface border border-border rounded-xl p-4 space-y-4 overflow-y-auto mb-4 min-h-[400px] max-h-[500px]">
+        {/* Messages */}
+        <div className="flex-1 glass rounded-2xl p-5 space-y-4 overflow-y-auto
+                        mb-4 min-h-[400px] max-h-[500px]">
           {messages.map((msg, i) => (
             <MessageBubble key={i} message={msg} />
           ))}
 
-          {/* Loading indicator */}
           {loading && (
             <div className="flex justify-start">
-              <div className="bg-card border border-border rounded-2xl rounded-bl-sm px-4 py-3">
+              <div className="glass rounded-2xl rounded-bl-sm px-4 py-3">
                 <div className="flex items-center gap-2">
-                  <span className="text-lg">🤖</span>
+                  <span className="text-sm">🤖</span>
                   <div className="flex gap-1">
                     {[0, 1, 2].map((i) => (
                       <span
                         key={i}
-                        className="w-2 h-2 bg-muted rounded-full animate-bounce"
+                        className="w-2 h-2 bg-white/30 rounded-full animate-bounce"
                         style={{ animationDelay: `${i * 0.15}s` }}
                       />
                     ))}
@@ -138,12 +128,10 @@ const Chatbot = () => {
               </div>
             </div>
           )}
-
-          {/* Auto scroll anchor */}
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input area */}
+        {/* Input */}
         <div className="flex gap-3">
           <textarea
             value={input}
@@ -151,23 +139,25 @@ const Chatbot = () => {
             onKeyDown={handleKeyDown}
             placeholder="Ask anything about F1 or Cricket..."
             rows={1}
-            className="flex-1 bg-surface border border-border text-white px-4 py-3 rounded-xl focus:outline-none focus:border-primary transition-colors placeholder:text-muted/50 resize-none"
+            className="flex-1 glass text-white px-4 py-3 rounded-xl outline-none
+                       focus:border-primary/50 transition-all placeholder:text-white/20
+                       resize-none text-sm font-medium"
           />
           <button
             onClick={() => sendMessage()}
             disabled={!input.trim() || loading}
-            className="px-6 py-3 bg-primary hover:bg-red-700 disabled:opacity-40 text-white font-semibold rounded-xl transition-all"
+            className="btn-primary px-6 py-3 rounded-xl disabled:opacity-40
+                       disabled:cursor-not-allowed"
           >
             Send
           </button>
         </div>
 
-        <p className="text-muted text-xs text-center mt-3">
-          Press Enter to send · Shift+Enter for new line
+        <p className="text-white/20 text-xs text-center mt-3 font-medium">
+          Enter to send · Shift+Enter for new line
         </p>
-
       </div>
-    </div>
+    </PageWrapper>
   );
 };
 

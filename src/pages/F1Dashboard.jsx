@@ -1,12 +1,39 @@
-import  { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
-  getDriverStandings,
-  getConstructorStandings,
-  getRaceResults,
-  getRaceSchedule
+  getDriverStandings, getConstructorStandings,
+  getRaceResults, getRaceSchedule
 } from '../services/api';
 import { useSearchParams } from 'react-router-dom';
+import PageWrapper from '../components/PageWrapper';
 
+export const TEAM_COLORS = {
+  'Mercedes':       '#00D2BE',
+  'Ferrari':        '#DC0000',
+  'McLaren':        '#FF8700',
+  'Red Bull Racing':'#1E41FF',
+  'Aston Martin':   '#006F62',
+  'Alpine':         '#FF5F9E',
+  'Williams':       '#005AFF',
+  'Racing Bulls':   '#4E7CFF',
+  'Haas':           '#9C9FA2',
+  'Audi':           '#F50537',
+  'Cadillac':       '#FFD100',
+};
+
+const positionColor = (pos) => {
+  if (pos === '1') return 'text-yellow-400';
+  if (pos === '2') return 'text-gray-300';
+  if (pos === '3') return 'text-amber-600';
+  return 'text-white/40';
+};
+
+const Skeleton = () => (
+  <div className="space-y-3 animate-pulse">
+    {[...Array(8)].map((_, i) => (
+      <div key={i} className="h-14 glass rounded-xl" style={{ background: 'rgba(255,255,255,0.03)' }} />
+    ))}
+  </div>
+);
 
 const F1Dashboard = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -16,22 +43,17 @@ const F1Dashboard = () => {
   const [results, setResults] = useState([]);
   const [schedule, setSchedule] = useState([]);
   const [loading, setLoading] = useState(true);
-  
-  // Load all F1 data at once
+
   useEffect(() => {
     const load = async () => {
       setLoading(true);
       try {
         const [d, c, r, s] = await Promise.all([
-          getDriverStandings(),
-          getConstructorStandings(),
-          getRaceResults(),
-          getRaceSchedule(),
+          getDriverStandings(), getConstructorStandings(),
+          getRaceResults(), getRaceSchedule(),
         ]);
-        setDrivers(d.data);
-        setConstructors(c.data);
-        setResults(r.data);
-        setSchedule(s.data);
+        setDrivers(d.data); setConstructors(c.data);
+        setResults(r.data); setSchedule(s.data);
       } catch (err) {
         console.error(err);
       } finally {
@@ -41,93 +63,103 @@ const F1Dashboard = () => {
     load();
   }, []);
 
-  // Color based on position
-  const positionColor = (pos) => {
-    if (pos === '1') return 'text-yellow-400';
-    if (pos === '2') return 'text-gray-300';
-    if (pos === '3') return 'text-amber-600';
-    return 'text-muted';
-  };
-
   const tabs = [
-    { key: 'standings', label: 'Driver Standings' },
+    { key: 'standings',    label: 'Drivers' },
     { key: 'constructors', label: 'Constructors' },
-    { key: 'results', label: 'Last Race' },
-    { key: 'schedule', label: 'Schedule' },
+    { key: 'results',      label: 'Last Race' },
+    { key: 'schedule',     label: 'Schedule' },
   ];
 
   if (loading) return (
-    <div className="min-h-screen bg-dark flex items-center justify-center pt-16">
-      <div className="w-10 h-10 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-    </div>
+    <PageWrapper beam="f1">
+      <div className="max-w-6xl mx-auto px-6 py-10">
+        <div className="h-10 glass rounded-xl w-64 mb-8 animate-pulse" />
+        <Skeleton />
+      </div>
+    </PageWrapper>
   );
 
   return (
-    <div className="min-h-screen bg-dark pt-16">
-      <div className="max-w-6xl mx-auto px-4 py-8">
+    <PageWrapper beam="f1">
+      <div className="max-w-6xl mx-auto px-6 py-10">
 
         {/* Header */}
-        <div className="flex items-center gap-4 mb-8">
-          <span className="text-5xl">🏎️</span>
-          <div>
-            <h1 className="text-3xl font-display tracking-wider text-white">F1 DASHBOARD</h1>
-            <p className="text-muted text-sm">2025 Formula 1 World Championship</p>
+        <div className="mb-8">
+          <div className="flex items-center gap-3 mb-1">
+            <div className="w-1 h-8 bg-primary rounded-full" />
+            <h1 className="text-3xl font-black tracking-tight text-white">
+              F1 Dashboard
+            </h1>
           </div>
+          <p className="text-white/40 text-sm font-medium ml-4">
+            2026 Formula 1 World Championship
+          </p>
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-2 mb-8 overflow-x-auto pb-2">
+        <div className="flex gap-2 mb-8 overflow-x-auto pb-1">
           {tabs.map((t) => (
-              <button
-                  key={t.key}
-                  onClick={() => setSearchParams({ tab: t.key })}
-                  className={`px-5 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
-                      tab === t.key
-                          ? 'bg-primary text-white'
-                          : 'bg-surface text-muted hover:text-white border border-border'
-                  }`}
-              >
-                {t.label}
-              </button>
+            <button
+              key={t.key}
+              onClick={() => setSearchParams({ tab: t.key })}
+              className={`px-5 py-2.5 rounded-xl text-sm font-semibold whitespace-nowrap
+                         transition-all ${
+                tab === t.key
+                  ? 'bg-primary text-white'
+                  : 'glass text-white/50 hover:text-white hover:border-white/20'
+              }`}
+            >
+              {t.label}
+            </button>
           ))}
         </div>
 
-        {/* DRIVER STANDINGS TAB */}
+        {/* ── DRIVER STANDINGS ── */}
         {tab === 'standings' && (
-          <div className="bg-card border border-border rounded-xl overflow-hidden">
-            <div className="p-4 border-b border-border">
-              <h2 className="font-semibold text-white">Driver Championship Standings</h2>
+          <div className="glass rounded-2xl overflow-hidden">
+            <div className="px-6 py-4 border-b border-white/5 flex items-center justify-between">
+              <h2 className="font-black text-white text-sm tracking-tight">
+                DRIVER CHAMPIONSHIP
+              </h2>
+              <span className="text-white/30 text-xs font-semibold">
+                {drivers.length} drivers
+              </span>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-border">
-                    <th className="text-left p-4 text-muted text-xs uppercase">Pos</th>
-                    <th className="text-left p-4 text-muted text-xs uppercase">Driver</th>
-                    <th className="text-left p-4 text-muted text-xs uppercase">Team</th>
-                    <th className="text-left p-4 text-muted text-xs uppercase">Nationality</th>
-                    <th className="text-right p-4 text-muted text-xs uppercase">Wins</th>
-                    <th className="text-right p-4 text-muted text-xs uppercase">Podiums</th>
-                    <th className="text-right p-4 text-muted text-xs uppercase">Points</th>
+                  <tr className="border-b border-white/5">
+                    {['Pos', 'Driver', 'Team', 'Nat', 'Wins', 'Podiums', 'Pts'].map((h, i) => (
+                      <th key={h}
+                          className={`py-3 px-4 text-white/30 text-xs font-bold uppercase
+                                     tracking-widest ${i > 3 ? 'text-right' : 'text-left'}`}>
+                        {h}
+                      </th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
                   {drivers.map((d, i) => (
-                    <tr
-                      key={i}
-                      className={`border-b border-border/50 hover:bg-surface/50 transition-colors ${
-                        d.position === '1' ? 'bg-yellow-400/5' : ''
-                      }`}
-                    >
-                      <td className={`p-4 font-bold text-lg ${positionColor(d.position)}`}>
+                    <tr key={i}
+                        className="border-b border-white/5 hover:bg-white/3 transition-colors"
+                        style={{ background: d.position === '1' ? 'rgba(250,204,21,0.04)' : '' }}>
+                      <td className={`py-4 px-4 font-black text-lg ${positionColor(d.position)}`}>
                         {d.position}
                       </td>
-                      <td className="p-4 text-white font-medium">{d.driverName}</td>
-                      <td className="p-4 text-muted text-sm">{d.team}</td>
-                      <td className="p-4 text-muted text-sm">{d.nationality}</td>
-                      <td className="p-4 text-right text-white text-sm">{d.wins}</td>
-                      <td className="p-4 text-right text-white text-sm">{d.podiums}</td>
-                      <td className="p-4 text-right font-bold text-primary">{d.points}</td>
+                      <td className="py-4 px-4">
+                        <div className="flex items-center gap-3">
+                          <div
+                            className="w-1 h-6 rounded-full flex-shrink-0"
+                            style={{ background: TEAM_COLORS[d.team] || '#666' }}
+                          />
+                          <span className="text-white font-semibold text-sm">{d.driverName}</span>
+                        </div>
+                      </td>
+                      <td className="py-4 px-4 text-white/50 text-sm">{d.team}</td>
+                      <td className="py-4 px-4 text-white/50 text-sm">{d.nationality}</td>
+                      <td className="py-4 px-4 text-right text-white text-sm font-semibold">{d.wins}</td>
+                      <td className="py-4 px-4 text-right text-white text-sm font-semibold">{d.podiums}</td>
+                      <td className="py-4 px-4 text-right font-black text-primary">{d.points}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -136,40 +168,51 @@ const F1Dashboard = () => {
           </div>
         )}
 
-        {/* CONSTRUCTOR STANDINGS TAB */}
+        {/* ── CONSTRUCTOR STANDINGS ── */}
         {tab === 'constructors' && (
-          <div className="bg-card border border-border rounded-xl overflow-hidden">
-            <div className="p-4 border-b border-border">
-              <h2 className="font-semibold text-white">Constructor Championship Standings</h2>
+          <div className="glass rounded-2xl overflow-hidden">
+            <div className="px-6 py-4 border-b border-white/5 flex items-center justify-between">
+              <h2 className="font-black text-white text-sm tracking-tight">
+                CONSTRUCTOR CHAMPIONSHIP
+              </h2>
+              <span className="text-white/30 text-xs font-semibold">
+                {constructors.length} teams
+              </span>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-border">
-                    <th className="text-left p-4 text-muted text-xs uppercase">Pos</th>
-                    <th className="text-left p-4 text-muted text-xs uppercase">Team</th>
-                    <th className="text-left p-4 text-muted text-xs uppercase">Nationality</th>
-                    <th className="text-right p-4 text-muted text-xs uppercase">Wins</th>
-                    <th className="text-right p-4 text-muted text-xs uppercase">Podiums</th>
-                    <th className="text-right p-4 text-muted text-xs uppercase">Points</th>
+                  <tr className="border-b border-white/5">
+                    {['Pos', 'Team', 'Nationality', 'Wins', 'Podiums', 'Pts'].map((h, i) => (
+                      <th key={h}
+                          className={`py-3 px-4 text-white/30 text-xs font-bold uppercase
+                                     tracking-widest ${i > 2 ? 'text-right' : 'text-left'}`}>
+                        {h}
+                      </th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
                   {constructors.map((c, i) => (
-                    <tr
-                      key={i}
-                      className={`border-b border-border/50 hover:bg-surface/50 transition-colors ${
-                        c.position === '1' ? 'bg-yellow-400/5' : ''
-                      }`}
-                    >
-                      <td className={`p-4 font-bold text-lg ${positionColor(c.position)}`}>
+                    <tr key={i}
+                        className="border-b border-white/5 hover:bg-white/3 transition-colors"
+                        style={{ background: c.position === '1' ? 'rgba(250,204,21,0.04)' : '' }}>
+                      <td className={`py-4 px-4 font-black text-lg ${positionColor(c.position)}`}>
                         {c.position}
                       </td>
-                      <td className="p-4 text-white font-medium">{c.teamName}</td>
-                      <td className="p-4 text-muted text-sm">{c.nationality}</td>
-                      <td className="p-4 text-right text-white text-sm">{c.wins}</td>
-                      <td className="p-4 text-right text-white text-sm">{c.podiums}</td>
-                      <td className="p-4 text-right font-bold text-primary">{c.points}</td>
+                      <td className="py-4 px-4">
+                        <div className="flex items-center gap-3">
+                          <div
+                            className="w-3 h-3 rounded-full flex-shrink-0"
+                            style={{ background: TEAM_COLORS[c.teamName] || '#666' }}
+                          />
+                          <span className="text-white font-semibold text-sm">{c.teamName}</span>
+                        </div>
+                      </td>
+                      <td className="py-4 px-4 text-white/50 text-sm">{c.nationality}</td>
+                      <td className="py-4 px-4 text-right text-white text-sm font-semibold">{c.wins}</td>
+                      <td className="py-4 px-4 text-right text-white text-sm font-semibold">{c.podiums}</td>
+                      <td className="py-4 px-4 text-right font-black text-primary">{c.points}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -178,40 +221,50 @@ const F1Dashboard = () => {
           </div>
         )}
 
-        {/* LAST RACE RESULTS TAB */}
+        {/* ── LAST RACE RESULTS ── */}
         {tab === 'results' && (
-          <div className="bg-card border border-border rounded-xl overflow-hidden">
-            <div className="p-4 border-b border-border">
-              <h2 className="font-semibold text-white">Latest Race Results</h2>
+          <div className="glass rounded-2xl overflow-hidden">
+            <div className="px-6 py-4 border-b border-white/5">
+              <h2 className="font-black text-white text-sm tracking-tight">LATEST RACE RESULTS</h2>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-border">
-                    <th className="text-left p-4 text-muted text-xs uppercase">Pos</th>
-                    <th className="text-left p-4 text-muted text-xs uppercase">Driver</th>
-                    <th className="text-left p-4 text-muted text-xs uppercase">Team</th>
-                    <th className="text-left p-4 text-muted text-xs uppercase">Time</th>
-                    <th className="text-left p-4 text-muted text-xs uppercase">Fastest Lap</th>
-                    <th className="text-right p-4 text-muted text-xs uppercase">Points</th>
+                  <tr className="border-b border-white/5">
+                    {['Pos', 'Driver', 'Team', 'Time', 'Fastest Lap', 'Pts'].map((h, i) => (
+                      <th key={h}
+                          className={`py-3 px-4 text-white/30 text-xs font-bold uppercase
+                                     tracking-widest ${i > 2 ? 'text-right' : 'text-left'}`}>
+                        {h}
+                      </th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
                   {results.map((r, i) => (
-                    <tr
-                      key={i}
-                      className={`border-b border-border/50 hover:bg-surface/50 transition-colors ${
-                        r.position === '1' ? 'bg-yellow-400/5' : ''
-                      }`}
-                    >
-                      <td className={`p-4 font-bold text-lg ${positionColor(r.position)}`}>
+                    <tr key={i}
+                        className="border-b border-white/5 hover:bg-white/3 transition-colors"
+                        style={{ background: r.position === '1' ? 'rgba(250,204,21,0.04)' : '' }}>
+                      <td className={`py-4 px-4 font-black text-lg ${positionColor(r.position)}`}>
                         {r.position}
                       </td>
-                      <td className="p-4 text-white font-medium">{r.driverName}</td>
-                      <td className="p-4 text-muted text-sm">{r.team}</td>
-                      <td className="p-4 text-muted text-sm font-mono">{r.time || 'DNF'}</td>
-                      <td className="p-4 text-muted text-sm font-mono">{r.fastestLap || '-'}</td>
-                      <td className="p-4 text-right font-bold text-primary">{r.points}</td>
+                      <td className="py-4 px-4">
+                        <div className="flex items-center gap-3">
+                          <div
+                            className="w-1 h-6 rounded-full flex-shrink-0"
+                            style={{ background: TEAM_COLORS[r.team] || '#666' }}
+                          />
+                          <span className="text-white font-semibold text-sm">{r.driverName}</span>
+                        </div>
+                      </td>
+                      <td className="py-4 px-4 text-white/50 text-sm">{r.team}</td>
+                      <td className="py-4 px-4 text-right text-white/60 text-sm font-mono">
+                        {r.time || 'DNF'}
+                      </td>
+                      <td className="py-4 px-4 text-right text-white/60 text-sm font-mono">
+                        {r.fastestLap || '—'}
+                      </td>
+                      <td className="py-4 px-4 text-right font-black text-primary">{r.points}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -220,7 +273,7 @@ const F1Dashboard = () => {
           </div>
         )}
 
-        {/* SCHEDULE TAB */}
+        {/* ── SCHEDULE ── */}
         {tab === 'schedule' && (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {schedule.map((race, i) => {
@@ -228,25 +281,26 @@ const F1Dashboard = () => {
               return (
                 <div
                   key={i}
-                  className={`card-hover bg-card border rounded-xl p-5 ${
-                    isPast ? 'border-border opacity-60' : 'border-border'
-                  }`}
+                  className={`glass rounded-2xl p-5 transition-all hover:-translate-y-0.5
+                             duration-200 ${isPast ? 'opacity-50' : 'hover:border-white/20'}`}
                 >
-                  <div className="flex items-start justify-between mb-3">
-                    <span className="text-2xl font-display text-primary">R{i + 1}</span>
-                    <span className={`text-xs px-2 py-1 rounded-full ${
+                  <div className="flex items-start justify-between mb-4">
+                    <span className="text-2xl font-black text-primary">R{i + 1}</span>
+                    <span className={`text-xs px-3 py-1 rounded-full font-bold ${
                       isPast
-                        ? 'bg-surface text-muted'
-                        : 'bg-primary/20 text-primary'
+                        ? 'bg-white/5 text-white/30'
+                        : 'bg-primary/15 text-primary'
                     }`}>
                       {isPast ? 'Completed' : 'Upcoming'}
                     </span>
                   </div>
-                  <h3 className="text-white font-semibold mb-1 text-sm">{race.raceName}</h3>
-                  <p className="text-muted text-xs mb-3">{race.circuit}</p>
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-muted">📍 {race.country}</span>
-                    <span className="text-white font-medium">{race.date}</span>
+                  <h3 className="text-white font-bold text-sm mb-1 leading-snug">
+                    {race.raceName}
+                  </h3>
+                  <p className="text-white/40 text-xs mb-4">{race.circuit}</p>
+                  <div className="flex items-center justify-between text-xs border-t border-white/5 pt-3">
+                    <span className="text-white/40 font-medium">📍 {race.country}</span>
+                    <span className="text-white font-bold">{race.date}</span>
                   </div>
                 </div>
               );
@@ -255,7 +309,7 @@ const F1Dashboard = () => {
         )}
 
       </div>
-    </div>
+    </PageWrapper>
   );
 };
 
