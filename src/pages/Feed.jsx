@@ -11,58 +11,154 @@ const filterArticlesByTab = (articles, currentTab) => {
   return articles;
 };
 
-// ─── Video Card ───────────────────────────────────────────
-const VideoCard = ({ video }) => {
-  const [playing, setPlaying] = useState(false);
+// ─── Video Modal ──────────────────────────────────────────
+const VideoModal = ({ video, onClose }) => {
+  useEffect(() => {
+    const handler = (e) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', handler);
+    // Prevent body scroll while modal is open
+    document.body.style.overflow = 'hidden';
+    return () => {
+      window.removeEventListener('keydown', handler);
+      document.body.style.overflow = '';
+    };
+  }, [onClose]);
+
   return (
-    <div className="glass rounded-2xl overflow-hidden hover:border-white/15
-                    transition-all hover:-translate-y-0.5 duration-200">
-      <div className="relative">
-        {playing ? (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-6"
+      style={{
+        backdropFilter: 'blur(24px)',
+        WebkitBackdropFilter: 'blur(24px)',
+        background: 'rgba(8,9,12,0.85)',
+      }}
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-4xl rounded-2xl overflow-hidden"
+        style={{
+          background: '#0F1117',
+          border: '1px solid rgba(255,255,255,0.12)',
+          boxShadow: '0 40px 80px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.06)',
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Mac chrome */}
+        <div
+          className="flex items-center justify-between px-5 py-3.5"
+          style={{ borderBottom: '1px solid rgba(255,255,255,0.08)',
+                   background: 'rgba(0,0,0,0.4)' }}
+        >
+          {/* Mac dots */}
+          <div className="flex gap-2 group">
+            <div
+              onClick={onClose}
+              className="relative w-3 h-3 rounded-full bg-[#FF5F57] cursor-pointer
+                         flex items-center justify-center"
+            >
+              <span className="absolute opacity-0 group-hover:opacity-100 text-[#800000]
+                               text-[8px] font-black transition-opacity">✕</span>
+            </div>
+            <div className="w-3 h-3 rounded-full bg-[#FFBD2E]" />
+            <div className="w-3 h-3 rounded-full bg-[#28C840]" />
+          </div>
+
+          {/* Title */}
+          <div className="flex-1 mx-4 text-center">
+            <p className="text-white/60 text-xs font-semibold truncate max-w-lg mx-auto">
+              {video.title}
+            </p>
+          </div>
+
+          {/* YT link */}
+          
+           <a href={`https://youtube.com/watch?v=${video.videoId}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-white/30 hover:text-primary text-xs font-semibold
+                       transition-colors whitespace-nowrap"
+            onClick={(e) => e.stopPropagation()}
+          >
+            Open in YT →
+          </a>
+        </div>
+
+        {/* Video */}
+        <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
           <iframe
-            src={`https://www.youtube.com/embed/${video.videoId}?autoplay=1`}
-            className="w-full h-44"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope"
+            src={`https://www.youtube.com/embed/${video.videoId}?autoplay=1&rel=0`}
+            className="absolute inset-0 w-full h-full"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
             title={video.title}
           />
-        ) : (
-          <div className="relative cursor-pointer group" onClick={() => setPlaying(true)}>
-            <img src={video.thumbnailUrl} alt={video.title}
-                 className="w-full h-44 object-cover" />
-            <div className="absolute inset-0 flex items-center justify-center
-                            bg-black/30 group-hover:bg-black/50 transition-all">
-              <div className="w-12 h-12 bg-primary rounded-full flex items-center
-                              justify-center shadow-lg group-hover:scale-110 transition-transform">
-                <span className="text-white text-lg ml-1">▶</span>
-              </div>
-            </div>
-            <span className={`absolute top-2 right-2 px-2.5 py-1 rounded-lg
-                             text-xs font-bold backdrop-blur-sm
-                             ${video.category === 'F1'
-                               ? 'bg-primary/80 text-white'
-                               : 'bg-blue-500/80 text-white'}`}>
-              {video.category === 'F1' ? 'F1' : 'Cricket'}
-            </span>
-          </div>
-        )}
-      </div>
-      <div className="p-4">
-        <h3 className="text-white font-semibold text-sm leading-snug mb-3
-                       line-clamp-2">{video.title}</h3>
-        <div className="flex items-center justify-between">
-          <span className="text-white/40 text-xs font-medium">{video.channelTitle}</span>
-          <a href={`https://youtube.com/watch?v=${video.videoId}`}
-             target="_blank" rel="noopener noreferrer"
-             className="text-primary text-xs font-semibold hover:text-white
-                        transition-colors">
-            Watch →
-          </a>
+        </div>
+
+        {/* Footer */}
+        <div
+          className="flex items-center justify-between px-5 py-3"
+          style={{ borderTop: '1px solid rgba(255,255,255,0.06)',
+                   background: 'rgba(0,0,0,0.3)' }}
+        >
+          <span className="text-white/30 text-xs font-medium">{video.channelTitle}</span>
+          <span className={`text-xs font-bold px-3 py-1 rounded-full ${
+            video.category === 'F1'
+              ? 'bg-primary/15 text-primary'
+              : 'bg-blue-500/15 text-blue-400'
+          }`}>
+            {video.category === 'F1' ? 'F1' : 'Cricket'}
+          </span>
         </div>
       </div>
     </div>
   );
 };
+// ─── Video Card ───────────────────────────────────────────
+const VideoCard = ({ video, onPlay }) => (
+  <div
+    className="glass rounded-2xl overflow-hidden hover:border-white/15
+               transition-all hover:-translate-y-0.5 duration-200 cursor-pointer group"
+    onClick={() => onPlay(video)}
+  >
+    <div className="relative">
+      <img
+        src={video.thumbnailUrl}
+        alt={video.title}
+        className="w-full h-44 object-cover group-hover:scale-105
+                   transition-transform duration-300"
+      />
+      {/* Play overlay */}
+      <div className="absolute inset-0 flex items-center justify-center
+                      bg-black/20 group-hover:bg-black/50 transition-all">
+        <div className="w-14 h-14 rounded-full flex items-center justify-center
+                        transition-all duration-200 group-hover:scale-110"
+             style={{ background: 'rgba(255,30,60,0.9)',
+                      boxShadow: '0 8px 24px rgba(255,30,60,0.4)' }}>
+          <span className="text-white text-xl ml-1">▶</span>
+        </div>
+      </div>
+      {/* Category badge */}
+      <span className={`absolute top-2 right-2 px-2.5 py-1 rounded-lg text-xs
+                       font-bold backdrop-blur-sm ${
+        video.category === 'F1'
+          ? 'bg-primary/80 text-white'
+          : 'bg-blue-500/80 text-white'
+      }`}>
+        {video.category === 'F1' ? 'F1' : 'Cricket'}
+      </span>
+    </div>
+    <div className="p-4">
+      <h3 className="text-white font-semibold text-sm leading-snug mb-3
+                     line-clamp-2 group-hover:text-white/90 transition-colors">
+        {video.title}
+      </h3>
+      <div className="flex items-center justify-between">
+        <span className="text-white/40 text-xs font-medium">{video.channelTitle}</span>
+        <span className="text-primary text-xs font-semibold">Watch →</span>
+      </div>
+    </div>
+  </div>
+);
 
 // ─── Article Card ─────────────────────────────────────────
 const ArticleCard = ({ article }) => (
@@ -106,7 +202,8 @@ const Feed = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const tab = searchParams.get('tab') || 'all';
   const page = parseInt(searchParams.get('page') || '0');
-
+// Add this state inside the Feed component (near top with other useState):
+  const [activeVideo, setActiveVideo] = useState(null);
   const [videos, setVideos] = useState([]);
   const [hasMoreVideos, setHasMoreVideos] = useState(true);
   const [loading, setLoading] = useState(true);
@@ -207,8 +304,11 @@ const Feed = () => {
   ];
 
   if (loading) return (
-    <PageWrapper beam="feed">
-      <div className="max-w-7xl mx-auto px-6 py-10">
+<PageWrapper beam="feed">
+  {/* Video modal */}
+  {activeVideo && (
+    <VideoModal video={activeVideo} onClose={() => setActiveVideo(null)} />
+  )}      <div className="max-w-7xl mx-auto px-6 py-10">
         <div className="mb-8">
           <div className="h-8 bg-white/5 rounded-xl w-48 mb-2 animate-pulse" />
           <div className="h-4 bg-white/5 rounded w-72 animate-pulse" />
@@ -221,8 +321,11 @@ const Feed = () => {
   );
 
   return (
-    <PageWrapper beam="feed">
-      <div className="max-w-7xl mx-auto px-6 py-10">
+<PageWrapper beam="feed">
+  {/* Video modal */}
+  {activeVideo && (
+    <VideoModal video={activeVideo} onClose={() => setActiveVideo(null)} />
+  )}      <div className="max-w-7xl mx-auto px-6 py-10">
 
         {/* Header */}
         <div className="mb-8">
@@ -270,8 +373,9 @@ const Feed = () => {
               </div>
             ) : (
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {filteredVideos.map((v) => <VideoCard key={v.id} video={v} />)}
-              </div>
+{filteredVideos.map((v) => (
+  <VideoCard key={v.id} video={v} onPlay={setActiveVideo} />
+))}              </div>
             )}
 
             {/* Pagination */}
