@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { getLiveMatches, getUpcomingMatches, getScorecard } from '../services/api';
 import { useSearchParams } from 'react-router-dom';
 import PageWrapper from '../components/PageWrapper';
+import SpiderLoader from "../components/SpiderLoader";
 
 const isLiveMatch = (match) =>
   match.status?.toLowerCase().includes('live') ||
@@ -107,8 +108,7 @@ const ScorecardModal = ({ scorecard, loading, match, onClose }) => {
         {/* Loading state */}
         {loading && (
           <div className="flex items-center justify-center h-48">
-            <div className="w-8 h-8 border-2 border-primary border-t-transparent
-                            rounded-full animate-spin" />
+                <SpiderLoader />
           </div>
         )}
 
@@ -224,6 +224,8 @@ const Cricket = () => {
   const [scorecardLoading, setScorecardLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
 
+
+
   useEffect(() => {
     const load = async () => {
       setLoading(true);
@@ -236,6 +238,7 @@ const Cricket = () => {
       } catch (err) {
         console.error(err);
       } finally {
+        
         setLoading(false);
       }
     };
@@ -268,8 +271,7 @@ const Cricket = () => {
   if (loading) return (
     <PageWrapper beam="cricket">
       <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="w-10 h-10 border-2 border-primary border-t-transparent
-                        rounded-full animate-spin" />
+            <SpiderLoader />
       </div>
     </PageWrapper>
   );

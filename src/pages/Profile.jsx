@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { getProfile, uploadPicture, updateProfile,updateUsername   } from '../services/api';
 import { useNavigate } from 'react-router-dom';
 import PageWrapper from '../components/PageWrapper';
+import SpiderLoader from "../components/SpiderLoader";
 
 const SPORTS = [
   { key: 'F1',      label: 'Formula 1', icon: '🏎️', desc: 'Race data & standings' },
@@ -224,8 +225,7 @@ const Profile = () => {
   if (loading) return (
     <PageWrapper beam="profile">
       <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="w-10 h-10 border-2 border-primary border-t-transparent
-                        rounded-full animate-spin" />
+            <SpiderLoader />
       </div>
     </PageWrapper>
   );

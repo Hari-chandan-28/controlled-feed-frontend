@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { getFeed, getArticlesFeed } from '../services/api';
 import PageWrapper from '../components/PageWrapper';
+import SpiderLoader from "../components/SpiderLoader";
 
 const ARTICLES_PER_PAGE = 20;
 
@@ -434,8 +435,7 @@ const Feed = () => {
                 <div ref={articleObserverRef} className="py-10 flex justify-center">
                   {loadingMoreArticles && (
                     <div className="flex items-center gap-3 text-white/40 text-sm font-medium">
-                      <div className="w-5 h-5 border-2 border-primary border-t-transparent
-                                      rounded-full animate-spin" />
+                          <SpiderLoader />
                       Loading more...
                     </div>
                   )}
