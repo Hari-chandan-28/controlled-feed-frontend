@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getProfile, uploadPicture, updateProfile,updateUsername } from '../services/api';
+import { getProfile, uploadPicture, updateProfile,updateUsername   } from '../services/api';
 import { useNavigate } from 'react-router-dom';
 import PageWrapper from '../components/PageWrapper';
 
