@@ -4,8 +4,11 @@ import { signup, createProfile } from '../services/api';
 import logo from '../assets/logo.png';
 import { useAuth } from '../context/AuthContext';
 const SPORTS = [
-  { id: 'F1', label: 'Formula 1', icon: '🏎️' },
-  { id: 'CRICKET', label: 'Cricket', icon: '🏏' },
+  { id: 'F1',        label: 'Formula 1', icon: '🏎️', desc: 'Race data, standings & live timing' },
+  { id: 'CRICKET',   label: 'Cricket',   icon: '🏏', desc: 'Live scores & match news' },
+  { id: 'FOOTBALL',  label: 'Football',  icon: '⚽', desc: 'Match results & transfer news' },
+  { id: 'TENNIS',    label: 'Tennis',    icon: '🎾', desc: 'Tournament results & rankings' },
+  { id: 'BADMINTON', label: 'Badminton', icon: '🏸', desc: 'BWF tournaments & match highlights' },
 ];
 // Add this at the top of both Login.jsx and Signup.jsx components
 const extractError = (err) => {

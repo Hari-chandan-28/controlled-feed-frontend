@@ -4,8 +4,11 @@ import { useNavigate } from 'react-router-dom';
 import PageWrapper from '../components/PageWrapper';
 
 const SPORTS = [
-  { key: 'F1',      label: 'Formula 1', icon: '🏎️', desc: 'Race data & standings' },
-  { key: 'CRICKET', label: 'Cricket',   icon: '🏏', desc: 'Live scores & news' },
+  { id: 'F1',        label: 'Formula 1', icon: '🏎️', desc: 'Race data, standings & live timing' },
+  { id: 'CRICKET',   label: 'Cricket',   icon: '🏏', desc: 'Live scores & match news' },
+  { id: 'FOOTBALL',  label: 'Football',  icon: '⚽', desc: 'Match results & transfer news' },
+  { id: 'TENNIS',    label: 'Tennis',    icon: '🎾', desc: 'Tournament results & rankings' },
+  { id: 'BADMINTON', label: 'Badminton', icon: '🏸', desc: 'BWF tournaments & match highlights' },
 ];
 
 const EditModal = ({ profile, onClose, onSaved }) => {

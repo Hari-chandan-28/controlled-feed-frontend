@@ -66,16 +66,10 @@ export const getProfile = () => API.get('/api/profile/me');
 export const uploadPicture = (formData) => API.post('/api/profile/upload-picture', formData);
 
 // Feed
-export const getFeed = (page = 0, size = 10) => API.get(`/api/feed?page=${page}&pageSize=${size}`);
 
 // YouTube
 export const fetchF1Videos = () => API.get('/api/youtube/f1');
 export const fetchICCVideos = () => API.get('/api/youtube/icc');
-
-// RSS
-export const getF1Articles = () => API.get('/api/rss/f1');
-export const getCricketArticles = () => API.get('/api/rss/cricket');
-export const getArticlesFeed = () => API.get('/api/rss/feed');
 
 // F1 Dashboard
 export const getDriverStandings = () => API.get('/api/f1/standings');
@@ -115,5 +109,16 @@ export const createLiveF1Stream = (onMessage, onError) => {
 
   return es;
 };
+
+// KEEP/UPDATE these:
+export const getArticlesFeed = () => API.get('/api/rss/feed');
+export const getArticlesByCategory = (category) =>
+  API.get(`/api/rss/articles?category=${category}`);
+export const getVideosByCategory = (category, page = 0, size = 20) =>
+  API.get(`/api/feed/videos/category?category=${category}&page=${page}&size=${size}`);
+export const getRandomFeed = (size = 20) =>
+  API.get(`/api/feed/videos/random?size=${size}`);
+export const getFeed = (page = 0, size = 20) =>
+  API.get(`/api/feed?page=${page}&pageSize=${size}`);
     
 export default API;
