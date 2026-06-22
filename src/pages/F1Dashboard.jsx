@@ -7,17 +7,17 @@ import { useSearchParams } from 'react-router-dom';
 import PageWrapper from '../components/PageWrapper';
 
 export const TEAM_COLORS = {
-  'Mercedes':       '#00D2BE',
-  'Ferrari':        '#DC0000',
-  'McLaren':        '#FF8700',
-  'Red Bull Racing':'#1E41FF',
-  'Aston Martin':   '#006F62',
-  'Alpine':         '#FF5F9E',
-  'Williams':       '#005AFF',
-  'Racing Bulls':   '#4E7CFF',
-  'Haas':           '#9C9FA2',
-  'Audi':           '#F50537',
-  'Cadillac':       '#FFD100',
+  'Mercedes':         '#00D2BE',
+  'Ferrari':          '#DC0000',
+  'McLaren':          '#FF8700',
+  'Red Bull':         '#1E41FF',
+  'Aston Martin':     '#006F62',
+  'Alpine F1 Team':   '#FF5F9E',
+  'Williams':         '#005AFF',
+  'RB F1 Team':       '#4E7CFF',
+  'Haas F1 Team':     '#9C9FA2',
+  'Audi':             '#F50537',
+  'Cadillac F1 Team': '#FFD100',
 };
 
 const positionColor = (pos) => {
@@ -86,7 +86,7 @@ const F1Dashboard = () => {
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-1">
-            <div className="w-1 h-8 bg-primary rounded-full" />
+<div className="w-1 h-8 bg-violet-700 rounded-full" />
             <h1 className="text-3xl font-black tracking-tight text-white">
               F1 Dashboard
             </h1>
@@ -244,9 +244,9 @@ const F1Dashboard = () => {
                   {results.map((r, i) => (
                     <tr key={i}
                         className="border-b border-white/5 hover:bg-white/3 transition-colors"
-                        style={{ background: r.position === '1' ? 'rgba(250,204,21,0.04)' : '' }}>
-                      <td className={`py-4 px-4 font-black text-lg ${positionColor(r.position)}`}>
-                        {r.position}
+                        style={{ background: i === '0' ? 'rgba(250,204,21,0.04)' : '' }}>
+                      <td className={`py-4 px-4 font-black text-lg ${positionColor(String(i + 1))}`}>
+                        {i+1}
                       </td>
                       <td className="py-4 px-4">
                         <div className="flex items-center gap-3">

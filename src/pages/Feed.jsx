@@ -12,13 +12,13 @@ const ARTICLES_PER_PAGE = 20;
 
 // ─── Tabs config ──────────────────────────────────────────
 const TABS = [
-  { key: 'all',       label: 'All',       icon: '🌐' },
-  { key: 'F1',        label: 'F1',        icon: '🏎️' },
-  { key: 'CRICKET',   label: 'Cricket',   icon: '🏏' },
-  { key: 'FOOTBALL',  label: 'Football',  icon: '⚽' },
-  { key: 'TENNIS',    label: 'Tennis',    icon: '🎾' },
-  { key: 'BADMINTON', label: 'Badminton', icon: '🏸' },
-  { key: 'random',    label: 'Random',    icon: '🎲' },
+  { key: 'all',       label: 'All',       icon: '' },
+  { key: 'F1',        label: 'F1',        icon: '' },
+  { key: 'CRICKET',   label: 'Cricket',   icon: '' },
+  { key: 'FOOTBALL',  label: 'Football',  icon: '' },
+  { key: 'TENNIS',    label: 'Tennis',    icon: '' },
+  { key: 'BADMINTON', label: 'Badminton', icon: '' },
+  { key: 'random',    label: 'Random',    icon: '' },
 ];
 
 // ─── Filter articles by active tab ───────────────────────
@@ -31,43 +31,111 @@ const filterArticles = (articles, tab) => {
 const VideoCard = ({ video, onPlay }) => (
   <div
     onClick={() => onPlay(video)}
-    className="glass rounded-2xl overflow-hidden cursor-pointer group
-               hover:border-white/20 hover:-translate-y-0.5 transition-all duration-200"
+    className="
+      rounded-2xl overflow-hidden cursor-pointer group
+      bg-gradient-to-br
+      from-[#1c212b]
+      via-[#181d25]
+      to-[#12161d]
+      border border-[#2c3440]
+      shadow-lg shadow-black/30
+      hover:border-[#404958]
+      hover:shadow-xl hover:shadow-black/40
+      hover:-translate-y-1
+      transition-all duration-300
+    "
   >
-    <div className="relative">
+    {/* Thumbnail */}
+    <div className="relative overflow-hidden">
       <img
         src={video.thumbnailUrl}
         alt={video.title}
-        className="w-full h-44 object-cover group-hover:scale-105 transition-transform duration-300"
+        className="
+          w-full h-44 object-cover
+          transition-transform duration-500
+          group-hover:scale-105
+        "
       />
-      <div className="absolute inset-0 flex items-center justify-center
-                      bg-black/20 group-hover:bg-black/50 transition-all">
-        <div className="w-12 h-12 rounded-full flex items-center justify-center
-                        group-hover:scale-110 transition-transform"
-             style={{ background: 'rgba(255,30,60,0.9)',
-                      boxShadow: '0 8px 24px rgba(255,30,60,0.4)' }}>
+
+      {/* Premium dark overlay */}
+      <div
+        className="
+          absolute inset-0
+          flex items-center justify-center
+          bg-gradient-to-t
+          from-black/70
+          via-black/25
+          to-transparent
+          group-hover:from-black/80
+          transition-all duration-300
+        "
+      >
+        <div
+          className="
+            w-12 h-12 rounded-full
+            flex items-center justify-center
+            transition-all duration-300
+            group-hover:scale-110
+          "
+          style={{
+            background: "#FF1E3C",
+            boxShadow: "0 8px 24px rgba(255,30,60,0.35)",
+          }}
+        >
           <span className="text-white text-lg ml-1">▶</span>
         </div>
       </div>
-      <span className={`absolute top-2 right-2 px-2.5 py-1 rounded-lg text-xs
-                       font-bold backdrop-blur-sm text-white ${
-        video.category === 'F1'       ? 'bg-red-500/80'    :
-        video.category === 'CRICKET'  ? 'bg-blue-500/80'   :
-        video.category === 'FOOTBALL' ? 'bg-green-500/80'  :
-        video.category === 'TENNIS'   ? 'bg-yellow-500/80' :
-                                        'bg-purple-500/80'
-      }`}>
+
+      {/* Category Badge */}
+      <span
+        className={`absolute top-3 right-3 px-2.5 py-1 rounded-lg text-xs font-bold text-white ${
+          video.category === "F1"
+            ? "bg-red-600"
+            : video.category === "CRICKET"
+            ? "bg-blue-600"
+            : video.category === "FOOTBALL"
+            ? "bg-green-600"
+            : video.category === "TENNIS"
+            ? "bg-yellow-500 text-black"
+            : "bg-purple-600"
+        }`}
+      >
         {video.category}
       </span>
     </div>
-    <div className="p-4">
-      <h3 className="text-white font-semibold text-sm leading-snug
-                     line-clamp-2 mb-3">{video.title}</h3>
+
+    {/* Content */}
+    <div
+      className="p-4 border-t border-[#252a33]"
+      style={{
+        background:
+          "linear-gradient(180deg, #171c24 0%, #12161d 100%)",
+      }}
+    >
+      <h3
+        className="
+          text-white font-semibold text-sm
+          leading-snug line-clamp-2 mb-3
+          transition-colors duration-300
+          group-hover:text-white
+        "
+      >
+        {video.title}
+      </h3>
+
       <div className="flex items-center justify-between">
-        <span className="text-white/40 text-xs font-medium truncate">
+        <span className="text-gray-400 text-xs font-medium truncate">
           {video.channelTitle}
         </span>
-        <span className="text-primary text-xs font-semibold flex-shrink-0 ml-2">
+
+        <span
+          className="
+            text-primary text-xs font-semibold
+            flex-shrink-0 ml-2
+            transition-transform duration-300
+            group-hover:translate-x-1
+          "
+        >
           Watch →
         </span>
       </div>
@@ -365,7 +433,6 @@ const Feed = () => {
                   : 'glass text-white/50 hover:text-white hover:border-white/20'
               }`}
             >
-              <span>{t.icon}</span>
               {t.label}
             </button>
           ))}
@@ -403,7 +470,7 @@ const Feed = () => {
               </p>
             </div>
           ) : (
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-3 gap-4">
               {videos.map((v) => (
                 <VideoCard key={v.id} video={v} onPlay={setActiveVideo} />
               ))}
@@ -446,7 +513,7 @@ const Feed = () => {
                 className="glass px-6 py-2.5 rounded-xl text-white/60 hover:text-white
                            text-sm font-semibold transition-all hover:border-white/20"
               >
-                🎲 Shuffle again
+                 Shuffle again
               </button>
             </div>
           )}
