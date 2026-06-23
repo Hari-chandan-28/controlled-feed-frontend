@@ -26,14 +26,15 @@ const Navbar = () => {
   };
 
   return (
-    <nav
-      className="fixed top-0 left-0 right-0 z-50 border-b border-white/5"
-      style={{
-        background: 'rgba(8,9,12,0.6)',
-        backdropFilter: 'blur(20px)',
-        WebkitBackdropFilter: 'blur(20px)',
-      }}
-    >
+   <nav
+  className="fixed top-0 left-0 right-0 z-50"
+  style={{
+    background: 'rgba(0,0,0,0.00)',
+    backdropFilter: 'blur(10px)',
+    WebkitBackdropFilter: 'blur(24px)',
+    borderBottom: '1px solid rgba(255,255,255,0.03)',
+  }}
+>
       <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
 
         {/* Logo */}
