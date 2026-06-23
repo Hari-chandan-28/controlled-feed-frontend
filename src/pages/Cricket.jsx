@@ -6,7 +6,42 @@ import PageWrapper from '../components/PageWrapper';
 const isLiveMatch = (match) =>
   match.status?.toLowerCase().includes('live') ||
   match.status?.toLowerCase().includes('progress');
+// Add this helper at the top of Cricket.jsx
+const extractPlayerName = (playerStr) => {
+  if (!playerStr) return 'Unknown';
+  // Handle the "{id=..., name=Musaddiq Ahmed, cricbuzz_id=...}" format
+  if (playerStr.includes('name=')) {
+    const match = playerStr.match(/name=([^,}]+)/);
+    return match ? match[1].trim() : playerStr;
+  }
+  return playerStr;
+};
 
+// Split batting/bowling into two innings based on team count
+// First half = 1st innings, second half = 2nd innings
+const splitInnings = (scorecard) => {
+  if (!scorecard) return [];
+  const { batting, bowling, name } = scorecard;
+  if (!batting?.length) return [];
+
+  // Try to split by halfway point (equal teams in a match)
+  // CricAPI returns both teams' batting concatenated
+  const mid = Math.ceil(batting.length / 2);
+  const teams = name?.split(' vs ') || ['Team 1', 'Team 2'];
+
+  return [
+    {
+      team: teams[0]?.split(',')[0]?.trim() || '1st Innings',
+      batting: batting.slice(0, mid),
+      bowling: bowling?.slice(0, Math.ceil((bowling?.length || 0) / 2)) || [],
+    },
+    {
+      team: teams[1]?.split(',')[0]?.trim() || '2nd Innings',
+      batting: batting.slice(mid),
+      bowling: bowling?.slice(Math.ceil((bowling?.length || 0) / 2)) || [],
+    },
+  ].filter(inn => inn.batting.length > 0);
+};
 // ── Match Card ────────────────────────────────────────────
 const MatchCard = ({ match, onClick }) => (
   <div
@@ -57,156 +92,232 @@ const MatchCard = ({ match, onClick }) => (
 );
 
 // ── Scorecard Modal ───────────────────────────────────────
-const ScorecardModal = ({ scorecard, loading, match, onClose }) => {
-  // Close on Escape key
+const ScorecardModal = ({ scorecard, loading, onClose }) => {
+  const [activeInnings, setActiveInnings] = useState(0);
+
   useEffect(() => {
     const handler = (e) => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
+    document.body.style.overflow = 'hidden';
+    return () => {
+      window.removeEventListener('keydown', handler);
+      document.body.style.overflow = '';
+    };
   }, [onClose]);
 
+  const innings = splitInnings(scorecard);
+
   return (
+    // pt-16 pushes modal below navbar, overflow-y-auto on backdrop not modal
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
-               background: 'rgba(8,9,12,0.7)' }}
+      className="fixed inset-0 z-50 pt-16"
+      style={{
+        backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)',
+        background: 'rgba(8,9,12,0.75)',
+      }}
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-2xl max-h-[80vh] overflow-y-auto rounded-3xl"
+        className="relative w-full max-w-2xl mx-auto mt-4 mb-8 rounded-3xl overflow-hidden"
         style={{
-          background: 'rgba(255,255,255,0.06)',
-          backdropFilter: 'blur(40px)',
-          WebkitBackdropFilter: 'blur(40px)',
+          background: 'rgba(12,14,20,0.98)',
           border: '1px solid rgba(255,255,255,0.12)',
-          boxShadow: '0 40px 80px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.1)',
+          boxShadow: '0 40px 80px rgba(0,0,0,0.7)',
+          maxHeight: 'calc(100vh - 96px)',
+          display: 'flex',
+          flexDirection: 'column',
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Mac dots + close */}
-        <div className="sticky top-0 z-10 flex items-center justify-between px-6 py-4
-                        border-b border-white/8"
-             style={{ background: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(20px)' }}>
+        {/* Mac chrome — sticky, never scrolls */}
+        <div
+          className="flex-shrink-0 flex items-center justify-between px-6 py-4 border-b border-white/8"
+          style={{ background: 'rgba(0,0,0,0.4)' }}
+        >
           <div className="flex gap-2 group">
-            <div onClick={onClose}
-                 className="relative w-3 h-3 rounded-full bg-[#FF5F57] cursor-pointer
-                            flex items-center justify-center">
+            <div
+              onClick={onClose}
+              className="relative w-3 h-3 rounded-full bg-[#FF5F57] cursor-pointer
+                         flex items-center justify-center"
+            >
               <span className="absolute opacity-0 group-hover:opacity-100 text-[#800000]
                                text-[8px] font-black transition-opacity">✕</span>
             </div>
             <div className="w-3 h-3 rounded-full bg-[#FFBD2E]" />
             <div className="w-3 h-3 rounded-full bg-[#28C840]" />
           </div>
-          <span className="text-white/50 text-xs font-semibold">SCORECARD</span>
-          <button onClick={onClose}
-                  className="text-white/30 hover:text-white text-xs font-semibold transition-colors">
-            ESC to close
+          <span className="text-white/50 text-xs font-semibold tracking-widest">
+            SCORECARD
+          </span>
+          <button
+            onClick={onClose}
+            className="text-white/30 hover:text-white text-xs font-semibold transition-colors"
+          >
+            ESC
           </button>
         </div>
 
-        {/* Loading state */}
-        {loading && (
-          <div className="flex items-center justify-center h-48">
-            <div className="w-8 h-8 border-2 border-primary border-t-transparent
-                            rounded-full animate-spin" />
-          </div>
-        )}
+        {/* Scrollable content */}
+        <div className="flex-1 overflow-y-auto">
 
-        {/* Scorecard content */}
-        {scorecard && !loading && (
-          <div className="p-6">
-            {/* Match info */}
-            <div className="mb-6">
-              <h2 className="text-white font-black text-lg leading-snug mb-2">
-                {scorecard.name}
-              </h2>
-              <p className={`text-xs font-semibold mb-1 ${
-                isLiveMatch({ status: scorecard.status }) ? 'text-live' : 'text-white/40'
-              }`}>
-                {scorecard.status}
-              </p>
-              <p className="text-white/30 text-xs">📍 {scorecard.venue}</p>
+          {loading && (
+            <div className="flex items-center justify-center h-48">
+              <div className="w-8 h-8 border-2 border-primary border-t-transparent
+                              rounded-full animate-spin" />
             </div>
+          )}
 
-            {/* Batting */}
-            {scorecard.batting?.length > 0 && (
-              <div className="mb-6">
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="w-1 h-5 bg-primary rounded-full" />
-                  <h3 className="text-white font-black text-sm tracking-tight">BATTING</h3>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-xs">
-                    <thead>
-                      <tr className="border-b border-white/8">
-                        {['Batter', 'R', 'B', '4s', '6s', 'SR'].map((h, i) => (
-                          <th key={h}
-                              className={`py-2 px-2 text-white/30 font-bold uppercase
-                                         tracking-widest ${i === 0 ? 'text-left' : 'text-right'}`}>
-                            {h}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {scorecard.batting.map((b, i) => (
-                        <tr key={i} className="border-b border-white/5 hover:bg-white/3 transition-colors">
-                          <td className="py-2.5 px-2 text-white font-medium">{b.player}</td>
-                          <td className="py-2.5 px-2 text-right text-white font-black">{b.runs}</td>
-                          <td className="py-2.5 px-2 text-right text-white/50">{b.balls}</td>
-                          <td className="py-2.5 px-2 text-right text-white/50">{b.fours}</td>
-                          <td className="py-2.5 px-2 text-right text-white/50">{b.sixes}</td>
-                          <td className="py-2.5 px-2 text-right text-white/50">
-                            {b.strikeRate?.toFixed(1)}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
+          {scorecard && !loading && (
+            <div className="p-6">
 
-            {/* Bowling */}
-            {scorecard.bowling?.length > 0 && (
-              <div>
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="w-1 h-5 bg-live rounded-full" />
-                  <h3 className="text-white font-black text-sm tracking-tight">BOWLING</h3>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-xs">
-                    <thead>
-                      <tr className="border-b border-white/8">
-                        {['Bowler', 'O', 'M', 'R', 'W', 'Eco'].map((h, i) => (
-                          <th key={h}
-                              className={`py-2 px-2 text-white/30 font-bold uppercase
-                                         tracking-widest ${i === 0 ? 'text-left' : 'text-right'}`}>
-                            {h}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {scorecard.bowling.map((b, i) => (
-                        <tr key={i} className="border-b border-white/5 hover:bg-white/3 transition-colors">
-                          <td className="py-2.5 px-2 text-white font-medium">{b.player}</td>
-                          <td className="py-2.5 px-2 text-right text-white/50">{b.overs}</td>
-                          <td className="py-2.5 px-2 text-right text-white/50">{b.maidens}</td>
-                          <td className="py-2.5 px-2 text-right text-white/50">{b.runs}</td>
-                          <td className="py-2.5 px-2 text-right text-white font-black">{b.wickets}</td>
-                          <td className="py-2.5 px-2 text-right text-white/50">
-                            {b.economy?.toFixed(1)}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+              {/* Match info */}
+              <div className="mb-5">
+                <h2 className="text-white font-black text-base leading-snug mb-2">
+                  {scorecard.name}
+                </h2>
+                <p className={`text-xs font-semibold mb-1 ${
+                  isLiveMatch({ status: scorecard.status }) ? 'text-live' : 'text-white/50'
+                }`}>
+                  {scorecard.status}
+                </p>
+                <p className="text-white/30 text-xs">📍 {scorecard.venue}</p>
               </div>
-            )}
-          </div>
-        )}
+
+              {/* Innings tabs */}
+              {innings.length > 1 && (
+                <div className="flex gap-2 mb-5">
+                  {innings.map((inn, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setActiveInnings(i)}
+                      className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                        activeInnings === i
+                          ? 'bg-primary text-white'
+                          : 'glass text-white/40 hover:text-white'
+                      }`}
+                    >
+                      {inn.team}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Active innings content */}
+              {innings.length > 0 ? (
+                <>
+                  {/* Batting */}
+                  {innings[activeInnings]?.batting?.length > 0 && (
+                    <div className="mb-6">
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="w-1 h-5 bg-primary rounded-full" />
+                        <h3 className="text-white font-black text-sm tracking-widest">
+                          BATTING
+                        </h3>
+                      </div>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-xs">
+                          <thead>
+                            <tr className="border-b border-white/8">
+                              {['Batter', 'Dismissal', 'R', 'B', '4s', '6s', 'SR'].map((h, i) => (
+                                <th
+                                  key={h}
+                                  className={`py-2 px-2 text-white/30 font-bold uppercase
+                                             tracking-widest ${i < 2 ? 'text-left' : 'text-right'}`}
+                                >
+                                  {h}
+                                </th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {innings[activeInnings].batting.map((b, i) => (
+                              <tr
+                                key={i}
+                                className="border-b border-white/5 hover:bg-white/3 transition-colors"
+                              >
+                                {/* Extract name from object string */}
+                                <td className="py-2.5 px-2 text-white font-semibold">
+                                  {extractPlayerName(b.player)}
+                                </td>
+                                <td className="py-2.5 px-2 text-white/40 text-xs capitalize">
+                                  {b.dismissal || '—'}
+                                </td>
+                                <td className="py-2.5 px-2 text-right text-white font-black">
+                                  {b.runs}
+                                </td>
+                                <td className="py-2.5 px-2 text-right text-white/50">{b.balls}</td>
+                                <td className="py-2.5 px-2 text-right text-white/50">{b.fours}</td>
+                                <td className="py-2.5 px-2 text-right text-white/50">{b.sixes}</td>
+                                <td className="py-2.5 px-2 text-right text-white/50">
+                                  {b.strikeRate?.toFixed(1)}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Bowling */}
+                  {innings[activeInnings]?.bowling?.length > 0 && (
+                    <div>
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="w-1 h-5 bg-live rounded-full" />
+                        <h3 className="text-white font-black text-sm tracking-widest">
+                          BOWLING
+                        </h3>
+                      </div>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-xs">
+                          <thead>
+                            <tr className="border-b border-white/8">
+                              {['Bowler', 'O', 'M', 'R', 'W', 'Eco'].map((h, i) => (
+                                <th
+                                  key={h}
+                                  className={`py-2 px-2 text-white/30 font-bold uppercase
+                                             tracking-widest ${i === 0 ? 'text-left' : 'text-right'}`}
+                                >
+                                  {h}
+                                </th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {innings[activeInnings].bowling.map((b, i) => (
+                              <tr
+                                key={i}
+                                className="border-b border-white/5 hover:bg-white/3 transition-colors"
+                              >
+                                <td className="py-2.5 px-2 text-white font-semibold">
+                                  {extractPlayerName(b.player)}
+                                </td>
+                                <td className="py-2.5 px-2 text-right text-white/50">{b.overs}</td>
+                                <td className="py-2.5 px-2 text-right text-white/50">{b.maidens}</td>
+                                <td className="py-2.5 px-2 text-right text-white/50">{b.runs}</td>
+                                <td className="py-2.5 px-2 text-right text-white font-black">
+                                  {b.wickets}
+                                </td>
+                                <td className="py-2.5 px-2 text-right text-white/50">
+                                  {b.economy?.toFixed(1)}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="text-center py-10 text-white/30 text-sm">
+                  No scorecard data available
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
