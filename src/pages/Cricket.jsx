@@ -91,7 +91,9 @@ const MatchCard = ({ match, onClick }) => (
   </div>
 );
 
-// ── Scorecard Modal ───────────────────────────────────────
+// Remove splitInnings helper entirely — no longer needed
+
+// Update ScorecardModal to use scorecard.innings directly
 const ScorecardModal = ({ scorecard, loading, onClose }) => {
   const [activeInnings, setActiveInnings] = useState(0);
 
@@ -105,10 +107,10 @@ const ScorecardModal = ({ scorecard, loading, onClose }) => {
     };
   }, [onClose]);
 
-  const innings = splitInnings(scorecard);
+  // Use real innings from backend
+  const innings = scorecard?.innings || [];
 
   return (
-    // pt-16 pushes modal below navbar, overflow-y-auto on backdrop not modal
     <div
       className="fixed inset-0 z-50 pt-16"
       style={{
@@ -130,17 +132,16 @@ const ScorecardModal = ({ scorecard, loading, onClose }) => {
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Mac chrome — sticky, never scrolls */}
+        {/* Mac chrome */}
         <div
-          className="flex-shrink-0 flex items-center justify-between px-6 py-4 border-b border-white/8"
+          className="flex-shrink-0 flex items-center justify-between px-6 py-4
+                     border-b border-white/8"
           style={{ background: 'rgba(0,0,0,0.4)' }}
         >
           <div className="flex gap-2 group">
-            <div
-              onClick={onClose}
-              className="relative w-3 h-3 rounded-full bg-[#FF5F57] cursor-pointer
-                         flex items-center justify-center"
-            >
+            <div onClick={onClose}
+                 className="relative w-3 h-3 rounded-full bg-[#FF5F57] cursor-pointer
+                            flex items-center justify-center">
               <span className="absolute opacity-0 group-hover:opacity-100 text-[#800000]
                                text-[8px] font-black transition-opacity">✕</span>
             </div>
@@ -150,17 +151,14 @@ const ScorecardModal = ({ scorecard, loading, onClose }) => {
           <span className="text-white/50 text-xs font-semibold tracking-widest">
             SCORECARD
           </span>
-          <button
-            onClick={onClose}
-            className="text-white/30 hover:text-white text-xs font-semibold transition-colors"
-          >
+          <button onClick={onClose}
+                  className="text-white/30 hover:text-white text-xs font-semibold">
             ESC
           </button>
         </div>
 
-        {/* Scrollable content */}
+        {/* Scrollable body */}
         <div className="flex-1 overflow-y-auto">
-
           {loading && (
             <div className="flex items-center justify-center h-48">
               <div className="w-8 h-8 border-2 border-primary border-t-transparent
@@ -184,9 +182,9 @@ const ScorecardModal = ({ scorecard, loading, onClose }) => {
                 <p className="text-white/30 text-xs">📍 {scorecard.venue}</p>
               </div>
 
-              {/* Innings tabs */}
+              {/* Innings tabs — only show if multiple innings */}
               {innings.length > 1 && (
-                <div className="flex gap-2 mb-5">
+                <div className="flex gap-2 mb-5 flex-wrap">
                   {innings.map((inn, i) => (
                     <button
                       key={i}
@@ -197,17 +195,24 @@ const ScorecardModal = ({ scorecard, loading, onClose }) => {
                           : 'glass text-white/40 hover:text-white'
                       }`}
                     >
-                      {inn.team}
+                      {inn.inningsName || `Innings ${i + 1}`}
                     </button>
                   ))}
                 </div>
               )}
 
-              {/* Active innings content */}
-              {innings.length > 0 ? (
+              {/* No innings data */}
+              {innings.length === 0 && (
+                <div className="text-center py-10 text-white/30 text-sm">
+                  No scorecard data available yet
+                </div>
+              )}
+
+              {/* Active innings */}
+              {innings[activeInnings] && (
                 <>
                   {/* Batting */}
-                  {innings[activeInnings]?.batting?.length > 0 && (
+                  {innings[activeInnings].batting?.length > 0 && (
                     <div className="mb-6">
                       <div className="flex items-center gap-2 mb-3">
                         <div className="w-1 h-5 bg-primary rounded-full" />
@@ -219,12 +224,10 @@ const ScorecardModal = ({ scorecard, loading, onClose }) => {
                         <table className="w-full text-xs">
                           <thead>
                             <tr className="border-b border-white/8">
-                              {['Batter', 'Dismissal', 'R', 'B', '4s', '6s', 'SR'].map((h, i) => (
-                                <th
-                                  key={h}
-                                  className={`py-2 px-2 text-white/30 font-bold uppercase
-                                             tracking-widest ${i < 2 ? 'text-left' : 'text-right'}`}
-                                >
+                              {['Batter', 'Out', 'R', 'B', '4s', '6s', 'SR'].map((h, i) => (
+                                <th key={h}
+                                    className={`py-2 px-2 text-white/30 font-bold uppercase
+                                               tracking-widest ${i < 2 ? 'text-left' : 'text-right'}`}>
                                   {h}
                                 </th>
                               ))}
@@ -232,13 +235,10 @@ const ScorecardModal = ({ scorecard, loading, onClose }) => {
                           </thead>
                           <tbody>
                             {innings[activeInnings].batting.map((b, i) => (
-                              <tr
-                                key={i}
-                                className="border-b border-white/5 hover:bg-white/3 transition-colors"
-                              >
-                                {/* Extract name from object string */}
+                              <tr key={i}
+                                  className="border-b border-white/5 hover:bg-white/3 transition-colors">
                                 <td className="py-2.5 px-2 text-white font-semibold">
-                                  {extractPlayerName(b.player)}
+                                  {b.player}
                                 </td>
                                 <td className="py-2.5 px-2 text-white/40 text-xs capitalize">
                                   {b.dismissal || '—'}
@@ -261,7 +261,7 @@ const ScorecardModal = ({ scorecard, loading, onClose }) => {
                   )}
 
                   {/* Bowling */}
-                  {innings[activeInnings]?.bowling?.length > 0 && (
+                  {innings[activeInnings].bowling?.length > 0 && (
                     <div>
                       <div className="flex items-center gap-2 mb-3">
                         <div className="w-1 h-5 bg-live rounded-full" />
@@ -274,11 +274,9 @@ const ScorecardModal = ({ scorecard, loading, onClose }) => {
                           <thead>
                             <tr className="border-b border-white/8">
                               {['Bowler', 'O', 'M', 'R', 'W', 'Eco'].map((h, i) => (
-                                <th
-                                  key={h}
-                                  className={`py-2 px-2 text-white/30 font-bold uppercase
-                                             tracking-widest ${i === 0 ? 'text-left' : 'text-right'}`}
-                                >
+                                <th key={h}
+                                    className={`py-2 px-2 text-white/30 font-bold uppercase
+                                               tracking-widest ${i === 0 ? 'text-left' : 'text-right'}`}>
                                   {h}
                                 </th>
                               ))}
@@ -286,12 +284,10 @@ const ScorecardModal = ({ scorecard, loading, onClose }) => {
                           </thead>
                           <tbody>
                             {innings[activeInnings].bowling.map((b, i) => (
-                              <tr
-                                key={i}
-                                className="border-b border-white/5 hover:bg-white/3 transition-colors"
-                              >
+                              <tr key={i}
+                                  className="border-b border-white/5 hover:bg-white/3 transition-colors">
                                 <td className="py-2.5 px-2 text-white font-semibold">
-                                  {extractPlayerName(b.player)}
+                                  {b.player}
                                 </td>
                                 <td className="py-2.5 px-2 text-right text-white/50">{b.overs}</td>
                                 <td className="py-2.5 px-2 text-right text-white/50">{b.maidens}</td>
@@ -310,10 +306,6 @@ const ScorecardModal = ({ scorecard, loading, onClose }) => {
                     </div>
                   )}
                 </>
-              ) : (
-                <div className="text-center py-10 text-white/30 text-sm">
-                  No scorecard data available
-                </div>
               )}
             </div>
           )}
