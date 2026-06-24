@@ -1,11 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { getFeed, getVideosByCategory, getRandomFeed, getArticlesFeed, getProfile } from '../services/api';
+
 import { useSearchParams } from 'react-router-dom';
-import {
-  getFeed,
-  getVideosByCategory,
-  getRandomFeed,
-  getArticlesFeed
-} from '../services/api';
 import PageWrapper from '../components/PageWrapper';
 
 const ARTICLES_PER_PAGE = 20;
@@ -292,7 +288,8 @@ const Feed = () => {
   const [hasMoreArticles, setHasMoreArticles] = useState(true);
   const [articlesLoading, setArticlesLoading] = useState(false);
   const observerRef = useRef(null);
-
+  const [userGenres, setUserGenres] = useState([]);
+  const [genresLoaded, setGenresLoaded] = useState(false);
   // ── Load videos based on active tab ──────────────────────
   const loadVideos = useCallback(async (currentTab, pageNum) => {
     setVideosLoading(true);
@@ -318,6 +315,31 @@ const Feed = () => {
       setVideosLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+  getProfile()
+    .then(res => {
+      setUserGenres(res.data?.genres || []);
+      setGenresLoaded(true);
+    })
+    .catch(() => setGenresLoaded(true));
+}, []);
+
+// Redirect if on a sport tab user doesn't follow
+useEffect(() => {
+  if (!genresLoaded) return;
+  const sportTabs = ['F1', 'CRICKET', 'FOOTBALL', 'TENNIS', 'BADMINTON'];
+  if (sportTabs.includes(tab) && !userGenres.includes(tab)) {
+    setSearchParams({ tab: 'all', page: '0' });
+  }
+}, [genresLoaded, userGenres, tab]);
+
+// Filter visible tabs
+const visibleTabs = TABS.filter(t =>
+  t.key === 'all' ||
+  t.key === 'random' ||
+  userGenres.includes(t.key)
+);
 
   // ── Load articles once on mount ───────────────────────────
   const loadArticles = useCallback(async () => {
@@ -421,33 +443,31 @@ const Feed = () => {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-2 mb-8 overflow-x-auto pb-1 scrollbar-hide">
-          {TABS.map((t) => (
-            <button
-              key={t.key}
-              onClick={() => handleTabChange(t.key)}
-              className={`px-5 py-2.5 rounded-xl text-sm font-semibold whitespace-nowrap
-                         transition-all flex items-center gap-2 ${
-                tab === t.key
-                  ? 'bg-primary text-white shadow-lg'
-                  : 'glass text-white/50 hover:text-white hover:border-white/20'
-              }`}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
+      <div className="flex gap-2 mb-8 overflow-x-auto pb-1 scrollbar-hide">
+        {visibleTabs.map((t) => (
+          <button
+            key={t.key}
+            onClick={() => handleTabChange(t.key)}
+            className={`px-5 py-2.5 rounded-xl text-sm font-semibold whitespace-nowrap
+                      transition-all ${
+              tab === t.key
+                ? 'bg-primary text-white shadow-lg'
+                : 'glass text-white/50 hover:text-white hover:border-white/20'
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
 
         {/* ── VIDEOS ── */}
         <div className="mb-12">
           <div className="flex items-center justify-between mb-5">
             <h2 className="text-lg font-black text-white tracking-tight">
-              {tab === 'all'    ? 'Latest Videos' :
-               tab === 'random' ? 'Random Mix'    :
-               `${TABS.find(t => t.key === tab)?.icon} ${
-                 TABS.find(t => t.key === tab)?.label
-               } Videos`}
-            </h2>
+  {tab === 'all'    ? 'Latest Videos' :
+   tab === 'random' ? 'Random Mix'    :
+   `${visibleTabs.find(t => t.key === tab)?.label || tab} Videos`}
+</h2>
             {!videosLoading && (
               <span className="text-white/30 text-xs font-semibold">
                 {videos.length} videos
@@ -525,7 +545,7 @@ const Feed = () => {
             <h2 className="text-lg font-black text-white tracking-tight">
               {tab === 'all' || tab === 'random'
                 ? 'Latest News'
-                : `${TABS.find(t => t.key === tab)?.label} News`}
+                : `${visibleTabs.find(t => t.key === tab)?.label || tab} News`}
             </h2>
             <span className="text-white/30 text-xs font-semibold">
               {articles.length} of {filterArticles(allArticles, tab).length}
