@@ -73,27 +73,25 @@ const RaceDetailModal = ({ race, isPast, onClose }) => {
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 pt-20"
       style={{
-        background: 'rgba(8,9,12,0.7)',
-        backdropFilter: 'blur(24px)',
-        WebkitBackdropFilter: 'blur(24px)',
+        background: 'rgba(0,0,0,0.15)',
+        backdropFilter: 'blur(18px)',
+        WebkitBackdropFilter: 'blur(18px)',
       }}
       onClick={onClose}
     >
       {/* Modal — transparent, only gradient border + blur */}
       <div
-        className="relative w-full max-w-lg rounded-3xl overflow-hidden"
-        style={{
-          background: 'rgba(255,255,255,0.04)',
-          backdropFilter: 'blur(40px)',
-          WebkitBackdropFilter: 'blur(40px)',
-          border: '1px solid rgba(255,255,255,0.10)',
-          boxShadow: '0 32px 64px rgba(0,0,0,0.6)',
-          maxHeight: 'calc(100vh - 100px)',
-          display: 'flex',
-          flexDirection: 'column',
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
+  className="relative w-[75vw] max-w-2xl  h-[73vh] rounded-3xl overflow-hidden"
+  style={{
+    background: 'rgba(255,255,255,0.03)',
+    backdropFilter: 'blur(70px)',
+    WebkitBackdropFilter: 'blur(70px)',
+    border: '1px solid rgba(255,255,255,0.12)',
+    boxShadow: '0 20px 80px rgba(0,0,0,0.35)',
+    display: 'flex',
+    flexDirection: 'column'
+  }}
+>
         {/* Header */}
         <div
           className="flex-shrink-0 flex items-center justify-between px-6 py-4"
