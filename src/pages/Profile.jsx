@@ -5,11 +5,11 @@ import PageWrapper from '../components/PageWrapper';
 
 // id must match Genre enum values exactly
 const SPORTS = [
-  { id: 'F1',        label: 'Formula 1', icon: '🏎️', desc: 'Race data, standings & live timing' },
-  { id: 'CRICKET',   label: 'Cricket',   icon: '🏏', desc: 'Live scores & match news' },
-  { id: 'FOOTBALL',  label: 'Football',  icon: '⚽', desc: 'Match results & transfer news' },
-  { id: 'TENNIS',    label: 'Tennis',    icon: '🎾', desc: 'Tournament results & rankings' },
-  { id: 'BADMINTON', label: 'Badminton', icon: '🏸', desc: 'BWF tournaments & match highlights' },
+  { id: 'F1',        label: 'Formula 1', icon: '', desc: 'Race data, standings & live timing' },
+  { id: 'CRICKET',   label: 'Cricket',   icon: '', desc: 'Live scores & match news' },
+  { id: 'FOOTBALL',  label: 'Football',  icon: '', desc: 'Match results & transfer news' },
+  { id: 'TENNIS',    label: 'Tennis',    icon: '', desc: 'Tournament results & rankings' },
+  { id: 'BADMINTON', label: 'Badminton', icon: '', desc: 'BWF tournaments & match highlights' },
 ];
 
 const getSportMeta = (genreId) =>
@@ -323,7 +323,7 @@ const Profile = () => {
             {/* Online dot */}
             <div className="absolute bottom-1 right-1 w-5 h-5 rounded-full bg-live
                             border-2 border-ink">
-              <span className="w-full h-full rounded-full bg-live animate-ping absolute opacity-75" />
+              <span className="absolute bottom-0 right-0 w-full h-full rounded-full bg-live animate-ping opacity-75" />
             </div>
           </div>
 

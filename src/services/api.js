@@ -114,11 +114,11 @@ export const createLiveF1Stream = (onMessage, onError) => {
 export const getArticlesFeed = () => API.get('/api/rss/feed');
 export const getArticlesByCategory = (category) =>
   API.get(`/api/rss/articles?category=${category}`);
-export const getVideosByCategory = (category, page = 0, size = 20) =>
+export const getVideosByCategory = (category, page = 0, size = 18) =>
   API.get(`/api/feed/videos/category?category=${category}&page=${page}&size=${size}`);
-export const getRandomFeed = (size = 20) =>
+export const getRandomFeed = (size = 18) =>
   API.get(`/api/feed/videos/random?size=${size}`);
-export const getFeed = (page = 0, size = 20) =>
+export const getFeed = (page = 0, size = 18) =>
   API.get(`/api/feed?page=${page}&pageSize=${size}`);
     
 export default API;

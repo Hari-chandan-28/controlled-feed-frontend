@@ -4,7 +4,7 @@ import { getFeed, getVideosByCategory, getRandomFeed, getArticlesFeed, getProfil
 import { useSearchParams } from 'react-router-dom';
 import PageWrapper from '../components/PageWrapper';
 
-const ARTICLES_PER_PAGE = 20;
+const ARTICLES_PER_PAGE = 18;
 
 // ─── Tabs config ──────────────────────────────────────────
 const TABS = [
@@ -297,16 +297,16 @@ const Feed = () => {
       let res;
       if (currentTab === 'random') {
         // Random: no pagination, just a shuffled mix
-        res = await getRandomFeed(20);
+        res = await getRandomFeed(18);
         setHasMoreVideos(false);
       } else if (currentTab === 'all') {
         // All: user's genre videos, paginated
-        res = await getFeed(pageNum, 20);
-        setHasMoreVideos(res.data.length === 20);
+        res = await getFeed(pageNum, 18);
+        setHasMoreVideos(res.data.length === 18);
       } else {
         // Specific sport: always starts at page 0 for that sport
-        res = await getVideosByCategory(currentTab, pageNum, 20);
-        setHasMoreVideos(res.data.length === 20);
+        res = await getVideosByCategory(currentTab, pageNum, 18);
+        setHasMoreVideos(res.data.length === 18);
       }
       setVideos(res.data);
     } catch (err) {

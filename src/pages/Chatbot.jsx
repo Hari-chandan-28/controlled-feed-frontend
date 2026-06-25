@@ -24,20 +24,20 @@ const MessageBubble = ({ message }) => (
 const Chatbot = () => {
   const [messages, setMessages] = useState([{
     role: 'bot',
-    text: "Hi! I'm your AI sports expert \n\nAsk me anything about Formula 1 or Cricket — drivers, teams, records, rules, history, and more!"
+    text: "Hi! I'm your AI sports expert \n\nAsk me anything about Formula 1, Cricket, Football, Tennis, or Badminton — drivers, teams, records, rules, history, and more!"
   }]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef(null);
 
-  const suggestions = [
-    "Who won the 2024 F1 championship?",
-    "Who has the most F1 wins ever?",
-    "Explain DRS in F1",
-    "Who has the most test centuries?",
-    "Which team won IPL 2024?",
-    "What is the Duckworth-Lewis method?",
-  ];
+const suggestions = [
+  "Why do F1 cars spark at high speeds?",
+  "What happens if a cricket ball hits a spider cam?",
+  "Why is Wimbledon played only on grass?",
+  "Why is the offside rule needed in football?",
+  "Why do badminton shuttlecocks have exactly 16 feathers?",
+  "Why do F1 teams sometimes tell drivers not to overtake?",
+];
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -78,7 +78,7 @@ const Chatbot = () => {
             <h1 className="text-3xl font-black tracking-tight text-white">AI Chat</h1>
           </div>
           <p className="text-white/40 text-sm font-medium ml-4">
-            Powered by Google Gemini · F1 & Cricket only
+            Powered by Google Gemini · F1 , Cricket, Football, Tennis & Badminton only
           </p>
         </div>
 
@@ -137,7 +137,7 @@ const Chatbot = () => {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Ask anything about F1 or Cricket..."
+            placeholder="Ask anything about F1, Cricket, Football, Tennis, or Badminton  ..."
             rows={1}
             className="flex-1 glass text-white px-4 py-3 rounded-xl outline-none
                        focus:border-primary/50 transition-all placeholder:text-white/20
