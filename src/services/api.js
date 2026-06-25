@@ -120,5 +120,8 @@ export const getRandomFeed = (size = 18) =>
   API.get(`/api/feed/videos/random?size=${size}`);
 export const getFeed = (page = 0, size = 18) =>
   API.get(`/api/feed?page=${page}&pageSize=${size}`);
-    
+  
+//Schedule 
+export const getRaceDetail = (season, round) =>
+  API.get(`/api/f1/race/${season}/${round}`);
 export default API;

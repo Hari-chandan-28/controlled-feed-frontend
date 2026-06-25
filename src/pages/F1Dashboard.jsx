@@ -5,7 +5,266 @@ import {
 } from '../services/api';
 import { useSearchParams } from 'react-router-dom';
 import PageWrapper from '../components/PageWrapper';
+import { getRaceDetail } from '../services/api';
 
+// IST conversion: UTC → India Standard Time (UTC+5:30)
+const toIST = (dateStr, timeStr) => {
+  if (!dateStr) return '—';
+  try {
+    const utcString = timeStr
+      ? `${dateStr}T${timeStr.replace('Z', '')}Z`
+      : `${dateStr}T00:00:00Z`;
+    const date = new Date(utcString);
+    return date.toLocaleString('en-IN', {
+      timeZone: 'Asia/Kolkata',
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    });
+  } catch {
+    return dateStr;
+  }
+};
+
+const positionEmoji = (pos) => {
+  if (pos === 1) return '🥇';
+  if (pos === 2) return '🥈';
+  if (pos === 3) return '🥉';
+  return `${pos}.`;
+};
+
+const sessionColor = (name) => {
+  switch (name) {
+    case 'Race':       return '#FF1E3C';
+    case 'Qualifying': return '#F2994A';
+    case 'Sprint Qualifying': return '#F2994A';
+    case 'Sprint':     return '#00E5A0';
+    default:           return 'rgba(255,255,255,0.3)';
+  }
+};
+
+const RaceDetailModal = ({ race, isPast, onClose }) => {
+  const [detail, setDetail] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const handler = (e) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', handler);
+    document.body.style.overflow = 'hidden';
+
+    // Extract round number from race object
+    // Your schedule has round index from the map — pass it in
+    getRaceDetail(new Date(race.date).getFullYear(), race.round)
+      .then(res => setDetail(res.data))
+      .catch(err => console.error('Race detail error:', err))
+      .finally(() => setLoading(false));
+
+    return () => {
+      window.removeEventListener('keydown', handler);
+      document.body.style.overflow = '';
+    };
+  }, []);
+
+  return (
+    // Backdrop — pure gradient, no solid background components
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 pt-20"
+      style={{
+        background: 'rgba(8,9,12,0.7)',
+        backdropFilter: 'blur(24px)',
+        WebkitBackdropFilter: 'blur(24px)',
+      }}
+      onClick={onClose}
+    >
+      {/* Modal — transparent, only gradient border + blur */}
+      <div
+        className="relative w-full max-w-lg rounded-3xl overflow-hidden"
+        style={{
+          background: 'rgba(255,255,255,0.04)',
+          backdropFilter: 'blur(40px)',
+          WebkitBackdropFilter: 'blur(40px)',
+          border: '1px solid rgba(255,255,255,0.10)',
+          boxShadow: '0 32px 64px rgba(0,0,0,0.6)',
+          maxHeight: 'calc(100vh - 100px)',
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div
+          className="flex-shrink-0 flex items-center justify-between px-6 py-4"
+          style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}
+        >
+          <div className="flex gap-2 group">
+            <div onClick={onClose}
+                 className="relative w-3 h-3 rounded-full bg-[#FF5F57] cursor-pointer
+                            flex items-center justify-center">
+              <span className="absolute opacity-0 group-hover:opacity-100 text-[#800000]
+                               text-[8px] font-black transition-opacity">✕</span>
+            </div>
+            <div className="w-3 h-3 rounded-full bg-[#FFBD2E]" />
+            <div className="w-3 h-3 rounded-full bg-[#28C840]" />
+          </div>
+          <div className="text-center">
+            <div className="text-white font-black text-sm">
+              {detail?.raceName || race.raceName}
+            </div>
+            <div className="text-white/30 text-xs mt-0.5">
+              📍 {detail?.circuit || race.circuit} · {detail?.country || race.country}
+            </div>
+          </div>
+          <button onClick={onClose}
+                  className="text-white/25 hover:text-white text-xs transition-colors">
+            ESC
+          </button>
+        </div>
+
+        {/* Scrollable body */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+
+          {loading && (
+            <div className="flex items-center justify-center py-12">
+              <div className="w-8 h-8 border-2 border-primary border-t-transparent
+                              rounded-full animate-spin" />
+            </div>
+          )}
+
+          {detail && !loading && isPast && (
+            <>
+              {/* Podium */}
+              {detail.podium?.length > 0 && (
+                <div>
+                  <div className="text-xs font-black text-white/30 tracking-widest mb-3">
+                    PODIUM
+                  </div>
+                  <div className="space-y-2">
+                    {detail.podium.slice(0, 3).map((p) => (
+                      <div
+                        key={p.position}
+                        className="flex items-center gap-3 px-4 py-3 rounded-2xl"
+                        style={{ background: 'rgba(255,255,255,0.04)',
+                                 border: '1px solid rgba(255,255,255,0.07)' }}
+                      >
+                        <span className="text-xl w-8">{positionEmoji(p.position)}</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-white font-bold text-sm">{p.driverName}</div>
+                          <div className="text-white/40 text-xs">{p.team}</div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-white text-xs font-mono">{p.time}</div>
+                          <div className="text-primary text-xs font-bold">{p.points} pts</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Fastest lap */}
+              {detail.fastestLap && (
+                <div>
+                  <div className="text-xs font-black text-white/30 tracking-widest mb-3">
+                    FASTEST LAP
+                  </div>
+                  <div className="flex items-center gap-3 px-4 py-3 rounded-2xl"
+                       style={{ background: 'rgba(242,153,74,0.08)',
+                                border: '1px solid rgba(242,153,74,0.2)' }}>
+                    <span className="text-xl">⚡</span>
+                    <div className="flex-1">
+                      <div className="text-white font-bold text-sm">
+                        {detail.fastestLap.driverName}
+                      </div>
+                      <div className="text-white/40 text-xs">{detail.fastestLap.team}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-orange font-black text-sm font-mono">
+                        {detail.fastestLap.lapTime}
+                      </div>
+                      <div className="text-white/30 text-xs">
+                        Lap {detail.fastestLap.lapNumber}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Fastest pit stop */}
+              {detail.fastestPitStop && (
+                <div>
+                  <div className="text-xs font-black text-white/30 tracking-widest mb-3">
+                    FASTEST PIT STOP
+                  </div>
+                  <div className="flex items-center gap-3 px-4 py-3 rounded-2xl"
+                       style={{ background: 'rgba(0,229,160,0.06)',
+                                border: '1px solid rgba(0,229,160,0.2)' }}>
+                    <span className="text-xl">🔧</span>
+                    <div className="flex-1">
+                      <div className="text-white font-bold text-sm">
+                        {detail.fastestPitStop.driverName}
+                      </div>
+                      <div className="text-white/40 text-xs">
+                        Stop #{detail.fastestPitStop.stop} · Lap {detail.fastestPitStop.lap}
+                      </div>
+                    </div>
+                    <div className="text-live font-black text-sm font-mono">
+                      {detail.fastestPitStop.duration}s
+                    </div>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Session times — shown for both past and upcoming */}
+          {detail && !loading && detail.sessions?.length > 0 && (
+            <div>
+              <div className="text-xs font-black text-white/30 tracking-widest mb-3">
+                {isPast ? 'SESSION TIMES' : 'UPCOMING SESSIONS · IST'}
+              </div>
+              <div className="space-y-2">
+                {detail.sessions.map((session) => (
+                  <div
+                    key={session.name}
+                    className="flex items-center justify-between px-4 py-3 rounded-2xl"
+                    style={{ background: 'rgba(255,255,255,0.03)',
+                             border: '1px solid rgba(255,255,255,0.06)' }}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="w-1.5 h-6 rounded-full"
+                        style={{ background: sessionColor(session.name) }}
+                      />
+                      <span className="text-white font-semibold text-sm">
+                        {session.name}
+                      </span>
+                      {session.name === 'Sprint' && (
+                        <span className="text-xs px-2 py-0.5 rounded-full font-bold
+                                         bg-live/15 text-live">
+                          SPRINT
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-right">
+                      <div className="text-white text-xs font-semibold">
+                        {toIST(session.date, session.time)}
+                      </div>
+                      <div className="text-white/25 text-xs">IST</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+        </div>
+      </div>
+    </div>
+  );
+};
 export const TEAM_COLORS = {
   'Mercedes':         '#00D2BE',
   'Ferrari':          '#DC0000',
@@ -43,6 +302,7 @@ const F1Dashboard = () => {
   const [results, setResults] = useState([]);
   const [schedule, setSchedule] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedRace, setSelectedRace] = useState(null);
 
   useEffect(() => {
     const load = async () => {
@@ -274,40 +534,54 @@ const F1Dashboard = () => {
         )}
 
         {/* ── SCHEDULE ── */}
-        {tab === 'schedule' && (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {schedule.map((race, i) => {
-              const isPast = new Date(race.date) < new Date();
-              return (
-                <div
-                  key={i}
-                  className={`glass rounded-2xl p-5 transition-all hover:-translate-y-0.5
-                             duration-200 ${isPast ? 'opacity-50' : 'hover:border-white/20'}`}
-                >
-                  <div className="flex items-start justify-between mb-4">
-                    <span className="text-2xl font-black text-primary">R{i + 1}</span>
-                    <span className={`text-xs px-3 py-1 rounded-full font-bold ${
-                      isPast
-                        ? 'bg-white/5 text-white/30'
-                        : 'bg-primary/15 text-primary'
-                    }`}>
-                      {isPast ? 'Completed' : 'Upcoming'}
-                    </span>
-                  </div>
-                  <h3 className="text-white font-bold text-sm mb-1 leading-snug">
-                    {race.raceName}
-                  </h3>
-                  <p className="text-white/40 text-xs mb-4">{race.circuit}</p>
-                  <div className="flex items-center justify-between text-xs border-t border-white/5 pt-3">
-                    <span className="text-white/40 font-medium">📍 {race.country}</span>
-                    <span className="text-white font-bold">{race.date}</span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-
+  {tab === 'schedule' && (
+    <>
+      {selectedRace && (
+        <RaceDetailModal
+          race={selectedRace}
+          isPast={new Date(selectedRace.date) < new Date()}
+          onClose={() => setSelectedRace(null)}
+        />
+      )}
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {schedule.map((race, i) => {
+          const isPast = new Date(race.date) < new Date();
+          return (
+            <div
+              key={i}
+              onClick={() => setSelectedRace({ ...race, round: i + 1 })}
+              className={`glass rounded-2xl p-5 cursor-pointer transition-all
+                        hover:-translate-y-0.5 duration-200
+                        ${isPast ? 'opacity-60 hover:opacity-80' : 'hover:border-white/20'}`}
+            >
+              <div className="flex items-start justify-between mb-4">
+                <span className="text-2xl font-black text-primary">R{i + 1}</span>
+                <span className={`text-xs px-3 py-1 rounded-full font-bold ${
+                  isPast
+                    ? 'bg-white/5 text-white/30'
+                    : 'bg-primary/15 text-primary'
+                }`}>
+                  {isPast ? 'Completed' : 'Upcoming'}
+                </span>
+              </div>
+              <h3 className="text-white font-bold text-sm mb-1 leading-snug">
+                {race.raceName}
+              </h3>
+              <p className="text-white/40 text-xs mb-4">{race.circuit}</p>
+              <div className="flex items-center justify-between text-xs border-t
+                              border-white/5 pt-3">
+                <span className="text-white/40">📍 {race.country}</span>
+                <span className="text-white font-bold">{race.date}</span>
+              </div>
+              <div className="mt-3 text-white/25 text-xs text-right">
+                {isPast ? 'Tap for results →' : 'Tap for schedule →'}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </>
+  )}
       </div>
     </PageWrapper>
   );
