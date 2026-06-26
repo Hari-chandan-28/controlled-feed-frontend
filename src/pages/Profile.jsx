@@ -3,7 +3,6 @@ import { getProfile, uploadPicture, updateProfile, updateUsername } from '../ser
 import { useNavigate } from 'react-router-dom';
 import PageWrapper from '../components/PageWrapper';
 
-// id must match Genre enum values exactly
 const SPORTS = [
   { id: 'F1',        label: 'Formula 1', icon: '', desc: 'Race data, standings & live timing' },
   { id: 'CRICKET',   label: 'Cricket',   icon: '', desc: 'Live scores & match news' },
@@ -26,6 +25,21 @@ const EditModal = ({ profile, onClose, onSaved }) => {
       .map(g => typeof g === 'string' ? g.toUpperCase() : String(g).toUpperCase())
       .filter(g => SPORTS.map(s => s.id).includes(g));
   });
+
+  // Track original genres to detect if preferences changed
+  const originalGenres = profile?.genres
+    ?.filter(g => g != null)
+    ?.map(g => String(g).toUpperCase())
+    ?.sort()
+    ?.join(',') || '';
+
+  // Track original pic path for detecting pic change
+  const [previewPic, setPreviewPic] = useState(
+    profile?.profilePicturePath
+      ? `http://localhost:8080/${profile.profilePicturePath}`
+      : null
+  );
+  const [picFile, setPicFile] = useState(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -35,26 +49,54 @@ const EditModal = ({ profile, onClose, onSaved }) => {
     return () => window.removeEventListener('keydown', handler);
   }, [onClose]);
 
-  // Use sport.id not sport.key
   const toggleGenre = (id) => {
-    setGenres((prev) =>
+    setGenres(prev =>
       prev.includes(id) ? prev.filter(g => g !== id) : [...prev, id]
     );
+  };
+
+  // Handle pic selection — show preview immediately, don't upload yet
+  const handlePicSelect = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setPicFile(file);
+    setPreviewPic(URL.createObjectURL(file));
   };
 
   const handleSave = async () => {
     if (!name.trim()) { setError('Name cannot be empty.'); return; }
     if (genres.length === 0) { setError('Select at least one sport.'); return; }
+
     setSaving(true);
     setError('');
+
     try {
-      const validGenres = genres.filter(g => SPORTS.map(s => s.id).includes(g));
-      await Promise.all([
+      // Check if preferences actually changed
+      const newGenres = [...genres].sort().join(',');
+      const preferencesChanged = newGenres !== originalGenres;
+
+      // Run name + profile updates in parallel
+      const updates = [
         updateUsername({ name: name.trim() }),
-        updateProfile({ bio: bio || '', genres: validGenres }),
-      ]);
-      onSaved();
+        updateProfile({
+          bio: bio || '',
+          genres: genres.filter(g => SPORTS.map(s => s.id).includes(g))
+        }),
+      ];
+
+      // Upload pic if a new one was selected
+      if (picFile) {
+        const formData = new FormData();
+        formData.append('file', picFile);
+        updates.push(uploadPicture(formData));
+      }
+
+      await Promise.all(updates);
+
+      // Navigate based on what changed
+      onSaved(preferencesChanged);
       onClose();
+
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to save changes.');
     } finally {
@@ -73,7 +115,6 @@ const EditModal = ({ profile, onClose, onSaved }) => {
       }}
       onClick={onClose}
     >
-      {/* wider modal: max-w-2xl instead of max-w-md */}
       <div
         className="relative w-full max-w-2xl rounded-3xl my-8"
         style={{
@@ -91,11 +132,9 @@ const EditModal = ({ profile, onClose, onSaved }) => {
           style={{ background: 'rgba(0,0,0,0.3)' }}
         >
           <div className="flex gap-2 group">
-            <div
-              onClick={onClose}
-              className="relative w-3 h-3 rounded-full bg-[#FF5F57] cursor-pointer
-                         flex items-center justify-center"
-            >
+            <div onClick={onClose}
+                 className="relative w-3 h-3 rounded-full bg-[#FF5F57] cursor-pointer
+                            flex items-center justify-center">
               <span className="absolute opacity-0 group-hover:opacity-100 text-[#800000]
                                text-[8px] font-black transition-opacity">✕</span>
             </div>
@@ -109,18 +148,69 @@ const EditModal = ({ profile, onClose, onSaved }) => {
         </div>
 
         <div className="p-8 space-y-6">
+
           {/* Error */}
           {error && (
-            <div
-              className="relative flex items-center gap-3 px-4 py-3 rounded-xl overflow-hidden"
-              style={{ background: 'rgba(255,30,60,0.08)', border: '1px solid rgba(255,30,60,0.3)' }}
-            >
+            <div className="relative flex items-center gap-3 px-4 py-3 rounded-xl overflow-hidden"
+                 style={{ background: 'rgba(255,30,60,0.08)',
+                          border: '1px solid rgba(255,30,60,0.3)' }}>
               <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary rounded-l-xl" />
               <span className="text-primary text-sm font-semibold pl-2">⚠️ {error}</span>
             </div>
           )}
 
-          {/* Two column layout for name + bio */}
+          {/* Profile pic — now inside edit modal */}
+          <div>
+            <label className="text-xs font-bold text-white/40 tracking-widest mb-3 block">
+              PROFILE PICTURE
+            </label>
+            <div className="flex items-center gap-5">
+              {/* Avatar preview */}
+              <div className="relative flex-shrink-0">
+                {previewPic ? (
+                  <img
+                    src={previewPic}
+                    alt="Profile"
+                    className="w-20 h-20 rounded-full object-cover"
+                    style={{ boxShadow: '0 0 0 3px rgba(255,30,60,0.4)' }}
+                  />
+                ) : (
+                  <div
+                    className="w-20 h-20 rounded-full flex items-center justify-center text-3xl"
+                    style={{ background: 'rgba(255,255,255,0.05)',
+                             border: '2px solid rgba(255,255,255,0.1)' }}
+                  >
+                    👤
+                  </div>
+                )}
+                {picFile && (
+                  <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full
+                                  bg-live flex items-center justify-center text-xs">
+                    ✓
+                  </div>
+                )}
+              </div>
+
+              {/* Upload button */}
+              <div>
+                <label className="btn-glass cursor-pointer text-sm font-semibold px-5 py-2.5
+                                   rounded-xl inline-block">
+                  {picFile ? 'Change photo' : 'Upload photo'}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handlePicSelect}
+                    className="hidden"
+                  />
+                </label>
+                <p className="text-white/25 text-xs mt-2">
+                  {picFile ? picFile.name : 'JPG, PNG up to 5MB'}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Name + Bio side by side */}
           <div className="grid grid-cols-2 gap-5">
             <div>
               <label className="text-xs font-bold text-white/40 tracking-widest mb-2 block">
@@ -150,30 +240,29 @@ const EditModal = ({ profile, onClose, onSaved }) => {
             </div>
           </div>
 
-          {/* Sports — full width grid */}
+          {/* Sports preferences */}
           <div>
             <label className="text-xs font-bold text-white/40 tracking-widest mb-3 block">
               SPORTS PREFERENCES
             </label>
+            <p className="text-white/25 text-xs mb-3">
+              Changing preferences will refresh your feed
+            </p>
             <div className="grid grid-cols-3 gap-3">
               {SPORTS.map((sport) => {
                 const selected = genres.includes(sport.id);
                 return (
                   <div
-                    key={sport.id}  // ← sport.id not sport.key
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleGenre(sport.id);  // ← sport.id not sport.key
-                    }}
-                    className={`p-4 rounded-xl border cursor-pointer transition-all
-                               select-none ${
+                    key={sport.id}
+                    onClick={(e) => { e.stopPropagation(); toggleGenre(sport.id); }}
+                    className={`p-4 rounded-xl border cursor-pointer transition-all select-none ${
                       selected
                         ? 'border-primary/60 bg-primary/10'
                         : 'border-white/8 hover:border-white/20'
-                      }`}
+                    }`}
                     style={selected ? {} : { background: 'rgba(255,255,255,0.03)' }}
                   >
-                    <div className="text-2xl mb-2">{sport.icon}</div>
+                    <div className="text-2xl mb-2">{}</div>
                     <div className="text-white font-bold text-sm">{sport.label}</div>
                     <div className="text-white/40 text-xs mt-0.5 leading-snug">{sport.desc}</div>
                     {selected && (
@@ -204,6 +293,7 @@ const EditModal = ({ profile, onClose, onSaved }) => {
               {saving ? 'Saving...' : 'Save Changes'}
             </button>
           </div>
+
         </div>
       </div>
     </div>
@@ -214,9 +304,8 @@ const EditModal = ({ profile, onClose, onSaved }) => {
 const Profile = () => {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [uploading, setUploading] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
-  const [uploadSuccess, setUploadSuccess] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
@@ -233,34 +322,24 @@ const Profile = () => {
 
   useEffect(() => { loadProfile(); }, []);
 
-  const handleUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const formData = new FormData();
-    formData.append('file', file);
-    setUploading(true);
-    setUploadSuccess(false);
-    try {
-      await uploadPicture(formData);
-      setUploadSuccess(true);
-      await loadProfile();
-      setTimeout(() => setUploadSuccess(false), 3000);
-    } catch {
-      setError('Upload failed. Max size is 5MB.');
-    } finally {
-      setUploading(false);
+  // Called from modal — preferencesChanged drives navigation
+  const handleSaved = (preferencesChanged) => {
+    if (preferencesChanged) {
+      // Preferences changed → go to feed so new content loads
+      navigate('/feed');
+    } else {
+      // Only name/bio/pic changed → stay, refresh profile data
+      loadProfile();
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
     }
-  };
-
-  const handleSaved = async () => {
-    await loadProfile();
-    setTimeout(() => navigate('/feed'), 1500);
   };
 
   if (loading) return (
     <PageWrapper beam="profile">
       <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="w-10 h-10 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+        <div className="w-10 h-10 border-2 border-primary border-t-transparent
+                        rounded-full animate-spin" />
       </div>
     </PageWrapper>
   );
@@ -277,22 +356,25 @@ const Profile = () => {
 
       <div className="max-w-2xl mx-auto px-6 py-10">
 
-        {uploadSuccess && (
+        {/* Success toast */}
+        {saveSuccess && (
           <div className="fixed top-20 right-6 z-40 glass px-5 py-3 rounded-2xl
                           border border-live/30 text-live text-sm font-semibold shadow-lg">
-            ✓ Photo updated
+            ✓ Profile updated
           </div>
         )}
 
         {error && (
-          <div className="glass rounded-xl px-4 py-3 mb-6 text-primary text-sm border border-primary/30">
+          <div className="glass rounded-xl px-4 py-3 mb-6 text-primary text-sm
+                          border border-primary/30">
             {error}
           </div>
         )}
 
+        {/* ── Hero ── */}
         <div className="text-center mb-12">
 
-          {/* Avatar */}
+          {/* Avatar — no upload here, moved to edit modal */}
           <div className="relative inline-block mb-6">
             <div className="relative w-28 h-28 mx-auto">
               {profile?.profilePicturePath ? (
@@ -300,25 +382,21 @@ const Profile = () => {
                   src={`http://localhost:8080/${profile.profilePicturePath}`}
                   alt="Profile"
                   className="w-28 h-28 rounded-full object-cover"
-                  style={{ boxShadow: '0 0 0 3px rgba(255,30,60,0.5), 0 0 30px rgba(255,30,60,0.2)' }}
+                  style={{
+                    boxShadow: '0 0 0 3px rgba(255,30,60,0.5), 0 0 30px rgba(255,30,60,0.2)'
+                  }}
                 />
               ) : (
                 <div
-                  className="w-28 h-28 rounded-full glass flex items-center justify-center text-5xl"
-                  style={{ boxShadow: '0 0 0 3px rgba(255,30,60,0.3), 0 0 30px rgba(255,30,60,0.1)' }}
+                  className="w-28 h-28 rounded-full glass flex items-center
+                              justify-center text-5xl"
+                  style={{
+                    boxShadow: '0 0 0 3px rgba(255,30,60,0.3), 0 0 30px rgba(255,30,60,0.1)'
+                  }}
                 >
                   👤
                 </div>
               )}
-              <label
-                className="absolute inset-0 rounded-full cursor-pointer flex items-center
-                           justify-center bg-black/0 hover:bg-black/50 transition-all duration-200"
-              >
-                <span className="text-white text-xs font-bold opacity-0 hover:opacity-100 transition-opacity">
-                  {uploading ? '...' : 'Change'}
-                </span>
-                <input type="file" accept="image/*" onChange={handleUpload} className="hidden" />
-              </label>
             </div>
             {/* Online dot */}
             <div className="absolute bottom-1 right-1 w-5 h-5 rounded-full bg-live
@@ -334,29 +412,33 @@ const Profile = () => {
 
           {/* Bio */}
           {profile?.bio ? (
-            <p className="text-white/50 text-base max-w-sm mx-auto leading-relaxed mb-6">
+            <p
+              className="text-white/70 text-3xl max-w-sm mx-auto leading-relaxed mb-6"
+              style={{ fontFamily: '"Great Vibes", cursive' }}
+            >
               {profile.bio}
             </p>
           ) : (
             <p className="text-white/20 text-sm italic mb-6">No bio yet — add one!</p>
           )}
 
-          {/* Genre badges — now handles ALL sports dynamically */}
+          {/* Genre badges */}
           <div className="flex items-center justify-center flex-wrap gap-3 mb-8">
             {profile?.genres?.map((genre) => {
               const meta = getSportMeta(genre);
               return (
                 <div
                   key={genre}
-                  className="flex items-center gap-2 glass px-4 py-2 rounded-full border border-primary/30"
+                  className="flex items-center gap-2 glass px-4 py-2 rounded-full
+                             border border-primary/30"
                 >
-                  <span>{meta.icon}</span>
                   <span className="text-white font-semibold text-sm">{meta.label}</span>
                 </div>
               );
             })}
           </div>
 
+          {/* Edit button */}
           <button
             onClick={() => setEditOpen(true)}
             className="btn-primary px-8 py-3 rounded-2xl text-sm font-bold"

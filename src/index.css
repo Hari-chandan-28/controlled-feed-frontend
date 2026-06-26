@@ -388,3 +388,6 @@ body {
   background-attachment: fixed;
   background-size: cover;
 }
+.handwriting {
+  font-family: "Great Vibes", cursive;
+}
