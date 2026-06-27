@@ -4,6 +4,7 @@ import CircuitMap from '../components/f1live/CircuitMap';
 import TimingTower from '../components/f1live/TimingTower';
 import PageWrapper from '../components/PageWrapper';
 
+
 const F1Live = () => {
   const [positions, setPositions] = useState([]);
   const [intervals, setIntervals] = useState([]);
@@ -14,7 +15,17 @@ const F1Live = () => {
 
   const mapRef = useRef(null);
   const lastCircuitKeyRef = useRef(null);
+  const [blockedDuringLive, setBlockedDuringLive] = useState(true);
 
+// In your SSE error handler:
+(err) => {
+  setConnected(false);
+  // Check if it's the OpenF1 live session block
+  if (err?.message?.includes('authenticated') ||
+      err?.message?.includes('restricted')) {
+    setBlockedDuringLive(true);
+  }
+}
   useEffect(() => {
     let es = null;
     es = createLiveF1Stream(
@@ -84,25 +95,30 @@ const F1Live = () => {
           </div>
         </div>
 
-        {/* Not live banner */}
-        {!isLive && (
-          <div className="glass rounded-2xl px-6 py-5 mb-8 flex items-center gap-4
-                          border border-white/8">
-            <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center
-                            justify-center flex-shrink-0 text-lg">
-              🏁
-            </div>
-            <div>
-              <div className="text-white font-bold text-sm mb-0.5">
-                No session currently running
-              </div>
-              <div className="text-white/40 text-xs">
-                The page will populate automatically once a live session begins.
-                Circuit shape and team data below are from the most recent session.
-              </div>
-            </div>
+            {blockedDuringLive ? (
+      <div className="glass rounded-2xl px-6 py-5 mb-8 flex items-center gap-4
+                      border border-orange/20">
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center
+                        flex-shrink-0 text-lg"
+            style={{ background: 'rgba(242,153,74,0.1)' }}>
+          🔒
+        </div>
+        <div>
+          <div className="text-white font-bold text-sm mb-0.5">
+            Live session in progress
           </div>
-        )}
+          <div className="text-white/40 text-xs">
+            OpenF1 restricts free tier access during active race sessions.
+            Live data will resume automatically when the session ends.
+          </div>
+        </div>
+      </div>
+    ) : !isLive ? (
+      <div className="glass rounded-2xl px-6 py-5 mb-8 flex items-center gap-4
+                      border border-white/8">
+        {/* existing no-session banner */}
+      </div>
+    ) : null}
 
         {/* Main grid */}
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-6">
