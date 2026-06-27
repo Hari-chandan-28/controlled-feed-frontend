@@ -15,7 +15,7 @@ const F1Live = () => {
 
   const mapRef = useRef(null);
   const lastCircuitKeyRef = useRef(null);
-  const [blockedDuringLive, setBlockedDuringLive] = useState(true);
+  const [blockedDuringLive, setBlockedDuringLive] = useState(false);
 
 // In your SSE error handler:
 (err) => {
