@@ -379,7 +379,7 @@ body {
   background-size: cover;
 }
 
-.bg-beam-profile {
+/* .bg-beam-profile {
   background:
     linear-gradient(145deg,
       #08090C 0%, #7A1F0F 20%, #E8472B 32%,
@@ -387,6 +387,20 @@ body {
     );
   background-attachment: fixed;
   background-size: cover;
+} */
+.bg-beam-profile {
+  background:
+    linear-gradient(
+      135deg,
+      #082512 0%,
+      #05301d 15%,
+      #04302b 35%,
+      #0b2336 55%,
+      #091d42 75%,
+      #090733 100%
+    );
+  background-size: cover;
+  background-attachment: fixed;
 }
 .handwriting {
   font-family: "Great Vibes", cursive;

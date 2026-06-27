@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import {
   FeedIcon, F1Icon, LiveIcon, CricketIcon, ChatIcon, ProfileIcon
 } from './icons/NavIcons';
-
+import logo from '../assets/logo.png';
 const links = [
   { path: '/feed',    label: 'Feed',    Icon: FeedIcon },
   { path: '/f1',      label: 'F1',      Icon: F1Icon },
@@ -136,20 +136,23 @@ const Navbar = () => {
   };
 
   return (
-    <nav
-      className="fixed top-0 left-0 right-0 z-50 border-b border-white/5"
-      style={{
-        background: 'rgba(8,9,12,0.65)',
-        backdropFilter: 'blur(20px)',
-        WebkitBackdropFilter: 'blur(20px)',
-      }}
-    >
-      <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+    <nav className="fixed top-4 left-0 right-0 z-50 px-4 md:px-6">
+      {/* Floating Container */}
+      <div
+        className="max-w-7xl mx-auto rounded-[24px] overflow-hidden"
+        style={{
+  background: 'rgba(0,0,0,0)',
+  backdropFilter: 'blur(12px)',
+  WebkitBackdropFilter: 'blur(12px)',
+  border: '1px solid rgba(255,255,255,0.1)',
+}}>
+      {/* Main Navbar */}
+        <div className="h-16 px-6 flex items-center justify-between">
 
         {/* Logo */}
         <Link to="/feed"
               className="flex items-center gap-2.5 hover:opacity-80 transition-opacity flex-shrink-0">
-          <img src="/logo.png" alt="Sportiva" className="w-8 h-8 object-contain" />
+          <img src={logo} alt="Sportiva" className="w-8 h-8 object-contain" />
           <span className="text-lg font-black tracking-tight text-white">
             SPORT<span className="text-primary">IVA</span>
           </span>
@@ -223,18 +226,21 @@ const Navbar = () => {
           })}
         </div>
 
-        {/* Logout */}
-        <div className="hidden md:flex items-center">
-          <button
-            onClick={handleLogout}
-            className="px-4 py-2 rounded-xl text-sm font-semibold text-white/40
-                       hover:text-white/80 transition-all border border-white/8
-                       hover:border-white/20"
-            style={{ background: 'rgba(255,255,255,0.03)' }}
-          >
-            Logout
-          </button>
-        </div>
+        {/* Desktop Logout */}
+          <div className="hidden md:flex items-center">
+            <button
+              onClick={handleLogout}
+              className="px-4 py-2 rounded-xl text-sm font-semibold
+                         text-white/40 hover:text-white
+                         border border-white/10 hover:border-white/20
+                         transition-all"
+              style={{
+                background: 'rgba(255,255,255,0.03)',
+              }}
+            >
+              Logout
+            </button>
+          </div>
 
         {/* Mobile hamburger */}
         <button
@@ -297,16 +303,17 @@ const Navbar = () => {
             );
           })}
           <div className="border-t border-white/5 mt-2 pt-3">
-            <button
-              onClick={handleLogout}
-              className="w-full text-left px-4 py-3 text-sm font-semibold
-                         text-white/40 hover:text-primary transition-colors rounded-xl"
-            >
+             <button
+                onClick={handleLogout}
+                className="w-full text-left px-4 py-3 rounded-xl text-sm font-semibold
+                           text-white/40 hover:text-primary transition-colors"
+              >
               Logout
             </button>
           </div>
         </div>
       )}
+      </div>
     </nav>
   );
 };

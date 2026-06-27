@@ -105,25 +105,29 @@ const EditModal = ({ profile, onClose, onSaved }) => {
   };
 
   return (
+    // Backdrop — pure gradient, no solid background components
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 "
       style={{
-        backdropFilter: 'blur(20px)',
-        WebkitBackdropFilter: 'blur(20px)',
-        background: 'rgba(8,9,12,0.80)',
-        overflowY: 'auto',
+        background: 'rgba(0,0,0,0.15)',
+        backdropFilter: 'blur(18px)',
+        WebkitBackdropFilter: 'blur(18px)',
       }}
       onClick={onClose}
     >
+      {/* Modal — transparent, only gradient border + blur */}
       <div
-        className="relative w-full max-w-2xl rounded-3xl my-8"
-        style={{
-          background: 'rgba(15,17,23,0.95)',
-          backdropFilter: 'blur(40px)',
-          WebkitBackdropFilter: 'blur(40px)',
-          border: '1px solid rgba(255,255,255,0.12)',
-          boxShadow: '0 40px 80px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.06)',
-        }}
+  className="relative w-full max-w-2xl rounded-3xl my-8"
+  style={{
+    background: 'rgba(255,255,255,0.03)',
+    backdropFilter: 'blur(70px)',
+    WebkitBackdropFilter: 'blur(70px)',
+    border: '1px solid rgba(255,255,255,0.12)',
+    boxShadow: '0 20px 80px rgba(0,0,0,0.35)',
+    display: 'flex',
+    flexDirection: 'column'
+  }}
+
         onClick={(e) => e.stopPropagation()}
       >
         {/* Mac chrome */}
