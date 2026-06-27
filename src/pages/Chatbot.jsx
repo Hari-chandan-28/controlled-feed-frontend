@@ -68,7 +68,7 @@ const suggestions = [
 
   return (
     <PageWrapper beam="chat">
-      <div className="max-w-3xl mx-auto px-6 py-10 pb-0 flex flex-col"
+      <div className="max-w-3xl mx-auto px-6 py-10 pb-3 flex flex-col"
            style={{ minHeight: 'calc(100vh - 64px)' }}>
 
         {/* Header */}

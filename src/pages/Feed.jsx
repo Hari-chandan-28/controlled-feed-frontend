@@ -298,6 +298,10 @@ const Feed = () => {
       if (currentTab === 'random') {
         // Random: no pagination, just a shuffled mix
         res = await getRandomFeed(18);
+        window.scrollTo({
+      top: 0,
+      behavior: 'auto',
+    });
         setHasMoreVideos(false);
       } else if (currentTab === 'all') {
         // All: user's genre videos, paginated
