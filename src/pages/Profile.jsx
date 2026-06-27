@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { getProfile, uploadPicture, updateProfile, updateUsername } from '../services/api';
 import { useNavigate } from 'react-router-dom';
 import PageWrapper from '../components/PageWrapper';
+import { cacheGet, cacheSet ,cacheClear} from '../services/cache';
 
 const SPORTS = [
   { id: 'F1',        label: 'Formula 1', icon: '', desc: 'Race data, standings & live timing' },
@@ -100,6 +101,7 @@ const EditModal = ({ profile, onClose, onSaved }) => {
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to save changes.');
     } finally {
+      cacheClear(); // Clear cache to ensure fresh data on next load
       setSaving(false);
     }
   };

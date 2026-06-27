@@ -68,7 +68,7 @@ const suggestions = [
 
   return (
     <PageWrapper beam="chat">
-      <div className="max-w-3xl mx-auto px-6 py-10 flex flex-col"
+      <div className="max-w-3xl mx-auto px-6 py-10 pb-0 flex flex-col"
            style={{ minHeight: 'calc(100vh - 64px)' }}>
 
         {/* Header */}
@@ -105,7 +105,7 @@ const suggestions = [
 
         {/* Messages */}
         <div className="flex-1 glass rounded-2xl p-5 space-y-4 overflow-y-auto
-                        mb-4 min-h-[400px] max-h-[500px]">
+                        mb-4 min-h-[180px] max-h-[490px]">
           {messages.map((msg, i) => (
             <MessageBubble key={i} message={msg} />
           ))}
