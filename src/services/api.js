@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { cacheGet, cacheSet } from './cache';
+import { cacheDelete } from './cache';
 
 const API = axios.create({
     baseURL: import.meta.env.VITE_API_URL || ''
@@ -105,6 +106,10 @@ export const getLivePositions = () => API.get('/api/f1/live/positions');
 export const getLiveTiming = () => API.get('/api/f1/live/timing');
 export const getLiveIntervals = () => API.get('/api/f1/live/intervals');
 
+// Add this export
+export const invalidateProfileCache = () => {
+  cacheDelete('profile');
+};
 // Cricket
 // export const getLiveMatches = () => API.get('/api/cricket/live');
 // export const getUpcomingMatches = () => API.get('/api/cricket/upcoming');

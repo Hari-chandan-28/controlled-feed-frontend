@@ -1,6 +1,5 @@
-import { useState, useEffect } from 'react';
-import { getProfile, uploadPicture, updateProfile, updateUsername } from '../services/api';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect ,useCallback } from 'react';
+import { getProfile, uploadPicture, updateProfile, updateUsername, invalidateProfileCache } from '../services/api';import { useNavigate } from 'react-router-dom';
 import PageWrapper from '../components/PageWrapper';
 import { cacheGet, cacheSet ,cacheClear} from '../services/cache';
 
@@ -64,47 +63,50 @@ const EditModal = ({ profile, onClose, onSaved }) => {
     setPreviewPic(URL.createObjectURL(file));
   };
 
-  const handleSave = async () => {
-    if (!name.trim()) { setError('Name cannot be empty.'); return; }
-    if (genres.length === 0) { setError('Select at least one sport.'); return; }
+ const handleSave = async () => {
+  if (!name.trim()) { setError('Name cannot be empty.'); return; }
+  if (genres.length === 0) { setError('Select at least one sport.'); return; }
 
-    setSaving(true);
-    setError('');
+  setSaving(true);
+  setError('');
 
-    try {
-      // Check if preferences actually changed
-      const newGenres = [...genres].sort().join(',');
-      const preferencesChanged = newGenres !== originalGenres;
+  try {
+    const newGenres = [...genres].sort().join(',');
+    const preferencesChanged = newGenres !== originalGenres;
 
-      // Run name + profile updates in parallel
-      const updates = [
-        updateUsername({ name: name.trim() }),
-        updateProfile({
-          bio: bio || '',
-          genres: genres.filter(g => SPORTS.map(s => s.id).includes(g))
-        }),
-      ];
+    // Build updates array
+    const updates = [
+      updateUsername({ name: name.trim() }),
+      updateProfile({
+        bio: bio || '',
+        genres: genres.filter(g => SPORTS.map(s => s.id).includes(g))
+      }),
+    ];
 
-      // Upload pic if a new one was selected
-      if (picFile) {
-        const formData = new FormData();
-        formData.append('file', picFile);
-        updates.push(uploadPicture(formData));
-      }
-
-      await Promise.all(updates);
-
-      // Navigate based on what changed
-      onSaved(preferencesChanged);
-      onClose();
-
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to save changes.');
-    } finally {
-      cacheClear(); // Clear cache to ensure fresh data on next load
-      setSaving(false);
+    // Upload pic FIRST before closing modal
+    // Wait for it to complete so parent can reload fresh data
+    if (picFile) {
+      const formData = new FormData();
+      formData.append('file', picFile);
+      updates.push(uploadPicture(formData));
     }
-  };
+
+    await Promise.all(updates);
+
+    // Tell parent to reload profile BEFORE closing modal
+    // onSaved now returns a promise — wait for reload to finish
+    await onSaved(preferencesChanged);
+
+    // Only close after parent has fresh data
+    onClose();
+
+  } catch (err) {
+    setError(err.response?.data?.message || 'Failed to save changes.');
+  } finally {
+    cacheClear('profile'); // Clear cached profile data so next load is fresh
+    setSaving(false);
+  }
+};
 
   return (
     // Backdrop — pure gradient, no solid background components
@@ -315,26 +317,53 @@ const Profile = () => {
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  const loadProfile = async () => {
+  // Replace your current loadProfile and useEffect with this:
+
+const loadProfile = useCallback(async () => {
+  try {
+    const res = await getProfile();
+    setProfile(res.data);
+  } catch {
+    setError('Failed to load profile.');
+  } finally {
+    setLoading(false);
+  }
+}, []);
+
+useEffect(() => {
+  let cancelled = false;
+
+  const load = async () => {
     try {
       const res = await getProfile();
-      setProfile(res.data);
+      if (!cancelled) {
+        setProfile(res.data);
+        setLoading(false);
+      }
     } catch {
-      setError('Failed to load profile.');
-    } finally {
-      setLoading(false);
+      if (!cancelled) {
+        setError('Failed to load profile.');
+        setLoading(false);
+      }
     }
   };
 
-  useEffect(() => { loadProfile(); }, []);
+  load();
+
+  // Cleanup — if component unmounts before fetch completes,
+  // don't call setState on unmounted component
+  return () => { cancelled = true; };
+}, []);
 
   // Called from modal — preferencesChanged drives navigation
   const handleSaved = (preferencesChanged) => {
     if (preferencesChanged) {
       // Preferences changed → go to feed so new content loads
+      invalidateProfileCache(); // clear cache before navigating
       navigate('/feed');
     } else {
       // Only name/bio/pic changed → stay, refresh profile data
+      invalidateProfileCache(); // clear cache before navigating
       loadProfile();
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
