@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { getFeed, getVideosByCategory, getRandomFeed, getArticlesFeed, getProfile ,fetchVideosByCategory,fetchAllVideos} from '../services/api';
-
+import {cacheClear,cacheDelete} from '../services/cache';
 import { useSearchParams } from 'react-router-dom';
 import PageWrapper from '../components/PageWrapper';
 
@@ -274,6 +274,7 @@ const Feed = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const tab = searchParams.get('tab') || 'all';
   const page = parseInt(searchParams.get('page') || '0');
+  const [fetchingContent, setFetchingContent] = useState(false);
 
   // Video state
   const [videos, setVideos] = useState([]);
@@ -313,9 +314,12 @@ const Feed = () => {
         setHasMoreVideos(res.data.length === 18);
       }
       setVideos(res.data);
+      console.log("Returned videos:", res.data);
+console.log("Count:", res.data.length);
     } catch (err) {
       console.error('Video load error:', err);
     } finally {
+      
       setVideosLoading(false);
     }
   }, []);
@@ -411,7 +415,34 @@ const visibleTabs = TABS.filter(t =>
     if (observerRef.current) observer.observe(observerRef.current);
     return () => observer.disconnect();
   }, [hasMoreArticles, articlesLoading, articlePage, allArticles, tab]);
-
+  
+  const handleFetchContent = async () => {
+  setFetchingContent(true);
+  try {
+      console.log("1. Fetch started");
+    if (tab === 'random') {
+      // Discover — fetch across all sports
+      await fetchAllVideos();
+    } else if (tab === 'all') {
+      // All — fetch only the sports user follows
+      await Promise.all(
+        userGenres.map(genre => fetchVideosByCategory(genre))
+      );
+    } else {
+      // Specific sport tab
+      await fetchVideosByCategory(tab);
+    }
+      console.log("2. Fetch finished");
+    // Reload whatever is currently displayed
+    cacheDelete();
+    await loadVideos(tab, page);
+  } catch (err) {
+    console.error('Fetch content error:', err);
+  } finally {
+      console.log("3. Videos reloaded");
+    setFetchingContent(false);
+  }
+};
   // ── Tab change ────────────────────────────────────────────
   const handleTabChange = (newTab) => {
     // Reset to page 0 when switching tabs
@@ -480,26 +511,39 @@ const visibleTabs = TABS.filter(t =>
           </div>
 
           {videosLoading ? (
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {[...Array(8)].map((_, i) => <Skeleton key={i} />)}
-            </div>
-          ) : videos.length === 0 ? (
-            <div className="glass rounded-2xl py-16 text-center">
-              <p className="text-4xl mb-3">📺</p>
-              <p className="text-white/40 text-sm font-medium">
-                No videos found for this sport yet
-              </p>
-              <p className="text-white/20 text-xs mt-1">
-                Content updates every 6 hours
-              </p>
-              <button
-      onClick={() => {tab=== 'all' ? fetchAllVideos() : fetchVideosByCategory(tab)}}
-      className="px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition"
+  <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+    {[...Array(8)].map((_, i) => <Skeleton key={i} />)}
+  </div>
+) : videos.length === 0 ? (
+  <div className="glass rounded-2xl py-16 text-center">
+    <p className="text-4xl mb-3">📺</p>
+    <p className="text-white/40 text-sm font-medium">
+      No videos found for this sport yet
+    </p>
+    <p className="text-white/20 text-xs mt-1 mb-4">
+      Content updates every 6 hours, or fetch the latest now
+    </p>
+    <button
+      onClick={handleFetchContent}
+      disabled={fetchingContent}
+      className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-red-900 to-orange-900
+                 hover:from-red-700 hover:to-orange-700 text-white font-semibold
+                 shadow-lg hover:shadow-xl transition-all duration-300
+                 hover:-translate-y-0.5 disabled:opacity-50
+                 disabled:cursor-not-allowed disabled:hover:translate-y-0"
     >
-      Fetch Videos
+      {fetchingContent ? (
+        <span className="flex items-center gap-2">
+          <span className="w-4 h-4 border-2 border-white/40 border-t-white
+                           rounded-full animate-spin" />
+          Fetching...
+        </span>
+      ) : (
+        'Fetch Videos'
+      )}
     </button>
-            </div>
-          ) : (
+  </div>
+)  : (
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-3 gap-4">
               {videos.map((v) => (
                 <VideoCard key={v.id} video={v} onPlay={setActiveVideo} />
