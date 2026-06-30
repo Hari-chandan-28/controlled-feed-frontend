@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { getFeed, getVideosByCategory, getRandomFeed, getArticlesFeed, getProfile } from '../services/api';
+import { getFeed, getVideosByCategory, getRandomFeed, getArticlesFeed, getProfile ,fetchVideosByCategory,fetchAllVideos} from '../services/api';
 
 import { useSearchParams } from 'react-router-dom';
 import PageWrapper from '../components/PageWrapper';
@@ -492,6 +492,12 @@ const visibleTabs = TABS.filter(t =>
               <p className="text-white/20 text-xs mt-1">
                 Content updates every 6 hours
               </p>
+              <button
+      onClick={() => {tab=== 'all' ? fetchAllVideos() : fetchVideosByCategory(tab)}}
+      className="px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition"
+    >
+      Fetch Videos
+    </button>
             </div>
           ) : (
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-3 gap-4">

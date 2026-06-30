@@ -156,6 +156,10 @@ export const getRaceDetail = (season, round) =>
   API.get(`/api/f1/race/${season}/${round}`);
 export default API;
 
+export const fetchVideosByCategory = (category) =>
+  API.get(`/api/youtube/fetch?category=${category}`);
+
+export const fetchAllVideos = () => API.get('/api/youtube/fetch/all');
 // Cached version of getVideosByCategory
 // Tab switching to F1 twice in 60s = 1 API call not 2
 export const getVideosByCategory = async (category, page = 0, size = 20) => {
