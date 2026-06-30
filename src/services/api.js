@@ -3,9 +3,9 @@ import { cacheGet, cacheSet } from './cache';
 import { cacheDelete } from './cache';
 
 const API = axios.create({
-    baseURL: import.meta.env.VITE_API_URL || ''
+    baseURL: import.meta.env.VITE_API_URL
 });
-
+console.log('API base URL:', import.meta.env.VITE_API_URL || '');
 API.interceptors.request.use((config) => {
     const token = localStorage.getItem('token');
     if (token) {
