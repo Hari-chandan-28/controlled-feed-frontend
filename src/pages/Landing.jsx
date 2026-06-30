@@ -235,7 +235,7 @@ const Landing = () => {
         </h2>
         <div className="flex flex-col gap-6 max-w-xl">
           {[
-            { n: '01', text: 'Pick F1, Cricket, or both — your feed personalizes instantly to what you follow.' },
+            { n: '01', text: 'Pick F1, Cricket, Football, Tennis or Badminton — your feed personalizes instantly to what you follow.' },
             { n: '02', text: 'We pull live timing, scores, and news from 8+ sources automatically every few seconds.' },
             { n: '03', text: 'Just leave it open. The feed refreshes itself — no manual checking required.' },
           ].map((s) => (
@@ -289,10 +289,10 @@ const Landing = () => {
           </div>
             <h2 className="text-3xl md:text-4xl font-black tracking-tight mb-5 text-white">
               Ask anything about{' '}
-              <span style={{ color: '#BAE6FD' }}>F1 and Cricket</span>
+              <span style={{ color: '#BAE6FD' }}>F1, Cricket and more</span>
             </h2>
             <p className="text-white/60 text-base leading-relaxed mb-6">
-              Our AI knows the full history of Formula 1 and Cricket —
+              Our AI knows the full history of Formula 1 , Cricket , Football , Tennis and Badminton—
               race results, driver stats, team records, legendary moments.
               Ask it anything, get an instant answer.
             </p>
